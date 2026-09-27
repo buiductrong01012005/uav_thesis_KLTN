@@ -70,19 +70,47 @@ def discover_a0_checkpoint(explicit: str | None) -> Path:
             raise FileNotFoundError(f"A0 checkpoint not found: {p}")
         return p
 
+    # First try the common layouts used by the handoff bundle and by a
+    # project folder copied directly onto Windows.
     candidates = [
-        ROOT.parent / "results_current" / "seed81_best.pt",
-        ROOT / "results_current" / "seed81_best.pt",
         ROOT / "checkpoints" / "seed81_best.pt",
+        ROOT / "results_current" / "seed81_best.pt",
+        ROOT.parent / "results_current" / "seed81_best.pt",
+        ROOT.parent / "checkpoints" / "seed81_best.pt",
         ROOT / "seed81_best.pt",
+        Path.cwd() / "seed81_best.pt",
+        Path.cwd() / "checkpoints" / "seed81_best.pt",
+        Path.cwd() / "results_current" / "seed81_best.pt",
     ]
+    seen = set()
     for p in candidates:
-        if p.exists():
-            return p.resolve()
+        p = p.resolve()
+        if p in seen:
+            continue
+        seen.add(p)
+        if p.is_file():
+            return p
+
+    # Last-resort bounded recursive search. This makes the runner robust to
+    # extracting the ZIP one level deeper/shallower than expected without
+    # requiring the user to move the checkpoint manually.
+    search_roots = [ROOT, ROOT.parent, Path.cwd()]
+    for base in search_roots:
+        try:
+            base = base.resolve()
+            if not base.exists():
+                continue
+            for p in base.glob("**/seed81_best.pt"):
+                if p.is_file():
+                    return p.resolve()
+        except (OSError, PermissionError):
+            pass
+
     tried = "\n  - ".join(str(p) for p in candidates)
     raise FileNotFoundError(
-        "Could not auto-find seed81_best.pt. Tried:\n  - " + tried +
-        "\nPass it explicitly with --init-from PATH."
+        "Could not auto-find seed81_best.pt. Tried common locations and a recursive search.\n"
+        "Common locations were:\n  - " + tried +
+        "\nEither place seed81_best.pt under ./checkpoints or pass it explicitly with --init-from PATH."
     )
 
 
