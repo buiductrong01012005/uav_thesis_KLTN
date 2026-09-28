@@ -212,20 +212,38 @@ class V5RelayRequestEnv(V4FinalFixedMapEnv):
             )
 
     def _cleanup_assignments_after_step(self) -> None:
-        """Remove assignments that are no longer structurally valid."""
-        for rid in range(self.cfg.num_uavs):
+        """Enforce the V5 persistent-assignment invariant.
+
+        An *active* Relay must always have exactly one valid active Access
+        primary target.  Non-active UAVs keep no assignment, and Access UAVs
+        may not retain stale targets.  The parent battery lifecycle already
+        restores a charging UAV as Access on rejoin; this check makes that
+        invariant explicit and robust to any future lifecycle/control change.
+        """
+        n = self.cfg.num_uavs
+        for rid in range(n):
             target = int(self.relay_target[rid])
-            if target < 0:
-                continue
-            invalid_relay = self.status[rid] != ACTIVE or self.roles[rid] != RELAY
-            invalid_target = (
-                self.status[target] != ACTIVE or self.roles[target] != ACCESS
-            )
-            if invalid_relay:
+
+            if self.status[rid] != ACTIVE:
                 self.relay_target[rid] = -1
                 self.relay_assignment_age[rid] = 0
-            elif invalid_target:
-                # A Relay with no valid primary Access target returns to Access.
+                continue
+
+            if self.roles[rid] != RELAY:
+                self.relay_target[rid] = -1
+                self.relay_assignment_age[rid] = 0
+                continue
+
+            valid_target = (
+                0 <= target < n
+                and target != rid
+                and self.status[target] == ACTIVE
+                and self.roles[target] == ACCESS
+            )
+            if not valid_target:
+                # In V5, Relay is not a free-standing role: without a valid
+                # primary Access request it deterministically falls back to
+                # Access.
                 self.relay_target[rid] = -1
                 self.relay_assignment_age[rid] = 0
                 self.roles[rid] = ACCESS
@@ -237,7 +255,9 @@ class V5RelayRequestEnv(V4FinalFixedMapEnv):
         candidates = [int(x) for x in candidates if int(x) != int(relay_id)]
         if not candidates:
             self.relay_target[int(relay_id)] = -1
-            self.relay_assignment_age[int(relay_id)] = self.cfg.relay_min_dwell_slots
+            self.relay_assignment_age[int(relay_id)] = 0
+            if self.status[int(relay_id)] == ACTIVE:
+                self.roles[int(relay_id)] = ACCESS
             self._refresh_request_state()
             return None
         # Prefer a severe and heavily-loaded request, not simply the lowest id.
@@ -270,16 +290,73 @@ class V5RelayRequestEnv(V4FinalFixedMapEnv):
         if len(actions) != self.cfg.num_uavs:
             raise ValueError(f"Expected {self.cfg.num_uavs} actions")
 
+        # Build the mask once from the pre-action joint state, exactly as a
+        # decentralized simultaneous policy sees it.  AcceptRelay intents are
+        # then resolved jointly so two agents cannot both become the primary
+        # Relay for the same request in one slot.
         mask = self.get_action_mask()
+        raw_actions = [int(a) for a in actions]
+        for i, a in enumerate(raw_actions):
+            if not 0 <= a < self.n_actions:
+                raise ValueError("policy action must be in [0, 9]")
+            if self.status[i] == ACTIVE and not mask[i, a]:
+                if ACCEPT_BASE <= a < ACCEPT_BASE + N_ACCEPT_SLOTS:
+                    raise ValueError(f"invalid AcceptRelay action {a} for UAV {i}")
+                if a == RELEASE_RELAY:
+                    raise ValueError(f"invalid ReleaseRelay action for UAV {i}")
+
+        # Collect simultaneous volunteer intents.  If several Access UAVs ask
+        # to serve the same target, one deterministic winner is admitted and
+        # all other volunteers remain Access/Stay for this slot.  Identity is
+        # shuffled over start positions in the dynamic benchmark, so this
+        # tie-break is not a fixed spatial shortcut.  We log every conflict so
+        # a learned policy can only be called coordinated when conflicts are
+        # rare.
+        accept_intents: dict[int, list[int]] = {}
+        for i, a in enumerate(raw_actions):
+            if (
+                self.status[i] == ACTIVE
+                and self.roles[i] == ACCESS
+                and ACCEPT_BASE <= a < ACCEPT_BASE + N_ACCEPT_SLOTS
+                and mask[i, a]
+            ):
+                target = self.target_for_accept_action(i, a)
+                accept_intents.setdefault(int(target), []).append(int(i))
+
+        # Resolve all AcceptRelay proposals as a deterministic directed
+        # matching.  A UAV may participate in at most one accepted pair: it
+        # cannot become Relay for one request while simultaneously remaining
+        # the Access target of another Relay.  Sorting by actor id is only a
+        # contention tie-break; start-position identities are shuffled in the
+        # dynamic benchmark, and every rejected proposal is logged.
+        proposals = sorted(
+            (int(actor), int(target))
+            for target, claimants in accept_intents.items()
+            for actor in claimants
+        )
+        accepted_actor_to_target: dict[int, int] = {}
+        used_actors: set[int] = set()
+        used_targets: set[int] = set()
+        rejected_claims: list[tuple[int, int]] = []
+        for actor, target in proposals:
+            structural_conflict = (
+                actor in used_targets
+                or target in used_targets
+                or target in used_actors
+            )
+            if structural_conflict:
+                rejected_claims.append((actor, target))
+                continue
+            accepted_actor_to_target[actor] = target
+            used_actors.add(actor)
+            used_targets.add(target)
+        claim_conflicts = len(rejected_claims)
+
         translated: list[int] = []
         accepted: list[tuple[int, int]] = []
         released: list[int] = []
 
-        for i, raw in enumerate(actions):
-            a = int(raw)
-            if not 0 <= a < self.n_actions:
-                raise ValueError("policy action must be in [0, 9]")
-
+        for i, a in enumerate(raw_actions):
             if self.status[i] != ACTIVE:
                 translated.append(self.encode_action(STAY, ACCESS))
                 continue
@@ -289,16 +366,19 @@ class V5RelayRequestEnv(V4FinalFixedMapEnv):
                 # Physical movement always preserves the persistent role.
                 translated.append(self.encode_action(a, current_role))
             elif ACCEPT_BASE <= a < ACCEPT_BASE + N_ACCEPT_SLOTS:
-                if not mask[i, a]:
-                    raise ValueError(f"invalid AcceptRelay action {a} for UAV {i}")
                 target = self.target_for_accept_action(i, a)
-                self.relay_target[i] = target
-                self.relay_assignment_age[i] = 0
-                translated.append(self.encode_action(STAY, RELAY))
-                accepted.append((int(i), int(target)))
+                if accepted_actor_to_target.get(int(i)) == int(target):
+                    self.relay_target[i] = int(target)
+                    self.relay_assignment_age[i] = 0
+                    translated.append(self.encode_action(STAY, RELAY))
+                    accepted.append((int(i), int(target)))
+                else:
+                    # Lost/invalidated simultaneous claim: no movement and no
+                    # role change.  This preserves exactly one primary Relay
+                    # per request without silently turning extra Access UAVs
+                    # into Relays.
+                    translated.append(self.encode_action(STAY, ACCESS))
             elif a == RELEASE_RELAY:
-                if not mask[i, a]:
-                    raise ValueError(f"invalid ReleaseRelay action for UAV {i}")
                 self.relay_target[i] = -1
                 self.relay_assignment_age[i] = 0
                 translated.append(self.encode_action(STAY, ACCESS))
@@ -330,6 +410,8 @@ class V5RelayRequestEnv(V4FinalFixedMapEnv):
             "relay_target": self.relay_target.astype(int).tolist(),
             "relay_assignment_age": self.relay_assignment_age.astype(int).tolist(),
             "accepted_relay_targets_this_slot": [[a, t] for a, t in accepted],
+            "rejected_relay_claims_this_slot": [[a, t] for a, t in rejected_claims],
+            "relay_claim_conflicts_this_slot": int(claim_conflicts),
             "released_relay_ids_this_slot": released,
         })
         return out
@@ -425,6 +507,7 @@ class V5RelayRequestEnv(V4FinalFixedMapEnv):
             "relay_request_off_ratio": float(self.cfg.relay_request_off_ratio),
             "relay_request_min_load_mbps": float(self.cfg.relay_request_min_load_mbps),
             "relay_min_dwell_slots": int(self.cfg.relay_min_dwell_slots),
+            "relay_claim_conflict_rule": "deterministic joint matching of simultaneous AcceptRelay intents; no duplicate primary target and no Relay-to-Relay target chain",
             "reward": "mean user satisfaction only; unchanged",
         })
         return meta

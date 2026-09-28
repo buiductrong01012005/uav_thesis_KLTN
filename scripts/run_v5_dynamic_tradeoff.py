@@ -54,6 +54,8 @@ def evaluate(learner, seeds: list[int], horizon: int) -> dict:
         role_changes = 0
         accepts = 0
         releases = 0
+        claim_conflicts = 0
+        rejected_claims = 0
         return_events = 0
         rejoin_events = 0
         movement_steps = 0
@@ -74,6 +76,8 @@ def evaluate(learner, seeds: list[int], horizon: int) -> dict:
             role_changes += int(info["role_switches_this_slot"])
             accepts += len(info["accepted_relay_targets_this_slot"])
             releases += len(info["released_relay_ids_this_slot"])
+            claim_conflicts += int(info.get("relay_claim_conflicts_this_slot", 0))
+            rejected_claims += len(info.get("rejected_relay_claims_this_slot", []))
 
             status = np.asarray(info["status"], dtype=int)
             pos = np.asarray(info["uav_positions"], dtype=int)
@@ -104,6 +108,8 @@ def evaluate(learner, seeds: list[int], horizon: int) -> dict:
             "role_changes": int(role_changes),
             "accept_count": int(accepts),
             "release_count": int(releases),
+            "claim_conflict_count": int(claim_conflicts),
+            "rejected_claim_count": int(rejected_claims),
             "return_events": int(return_events),
             "rejoin_events": int(rejoin_events),
             "movement_steps": int(movement_steps),
@@ -139,6 +145,8 @@ def evaluate(learner, seeds: list[int], horizon: int) -> dict:
         "mean_role_changes": avg("role_changes"),
         "mean_accept_count": avg("accept_count"),
         "mean_release_count": avg("release_count"),
+        "mean_claim_conflict_count": avg("claim_conflict_count"),
+        "mean_rejected_claim_count": avg("rejected_claim_count"),
         "mean_return_events": avg("return_events"),
         "mean_rejoin_events": avg("rejoin_events"),
         "mean_movement_steps": avg("movement_steps"),
@@ -279,6 +287,7 @@ def main():
         "mobility_benchmark": "same-map smooth traffic path alternates direct-friendly and relay-stressed regimes; per-UE local motion remains stochastic",
         "battery": "automatic Return/Charging/Rejoin; staggered 55..100 initial battery levels shuffled across UAV IDs each episode",
         "initial_roles": "5 Access; RL creates/releases Relay assignments",
+        "relay_claim_conflict_rule": "deterministic joint matching of simultaneous AcceptRelay intents; no duplicate primary target and no Relay-to-Relay target chain",
     }
     (outdir / f"seed{args.seed}_run_config.json").write_text(json.dumps(run_cfg, indent=2), encoding="utf-8")
 
@@ -340,6 +349,8 @@ def main():
                     "final100": ev["final100"],
                     "mean_active_relays": ev["mean_active_relays"],
                     "mean_role_changes": ev["mean_role_changes"],
+                    "mean_claim_conflicts": ev["mean_claim_conflict_count"],
+                    "mean_rejected_claims": ev["mean_rejected_claim_count"],
                     "mean_return_events": ev["mean_return_events"],
                     "mean_rejoin_events": ev["mean_rejoin_events"],
                     "direct_mean_relays": ev["regime_summary"]["direct_friendly"]["mean_relays"],

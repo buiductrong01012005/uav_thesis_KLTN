@@ -157,3 +157,80 @@ def test_v5_spatial_qmix_end_to_end():
     nxt = env.step(actions)
     assert nxt["obs"].shape == (5, 110)
     assert nxt["action_mask"].shape == (5, 10)
+
+
+def test_duplicate_same_slot_claim_has_single_winner_and_losers_stay_access():
+    env = make_env()
+    env.reset_with_scenario(0, 70000, layout_seed=1101)
+
+    # Build a clean all-Access state with one open request.  Two agents submit
+    # the same AcceptRelay intent in the same joint action.
+    env.roles[:] = ACCESS
+    env.status[:] = 0
+    env.relay_target[:] = -1
+    env.relay_assignment_age[:] = 0
+    env.relay_needed[:] = False
+    env.request_open[:] = False
+    target = 0
+    env.relay_needed[target] = True
+    env.request_open[target] = True
+
+    a1 = env.accept_action_for_target(1, target)
+    a2 = env.accept_action_for_target(2, target)
+    actions = [STAY] * 5
+    actions[1] = a1
+    actions[2] = a2
+    out = env.step(actions)
+
+    # Tie-break is deterministic: lower UAV id wins.  Crucially, only one
+    # primary Relay exists and the losing volunteer stays Access.
+    assert env.roles[1] == RELAY
+    assert env.relay_target[1] == target
+    assert env.roles[2] == ACCESS
+    assert env.relay_target[2] == -1
+    assert out["info"]["accepted_relay_targets_this_slot"] == [[1, target]]
+    assert out["info"]["rejected_relay_claims_this_slot"] == [[2, target]]
+    assert out["info"]["relay_claim_conflicts_this_slot"] == 1
+
+
+def test_active_orphan_relay_is_forced_back_to_access():
+    env = make_env()
+    env.reset_with_scenario(0, 70000, layout_seed=1101)
+    rid = 3
+    env.status[rid] = 0
+    env.roles[rid] = RELAY
+    env.relay_target[rid] = -1
+    env.relay_assignment_age[rid] = 99
+
+    env._cleanup_assignments_after_step()
+
+    assert env.roles[rid] == ACCESS
+    assert env.relay_target[rid] == -1
+    assert env.relay_assignment_age[rid] == 0
+
+
+def test_relay_target_that_accepts_another_request_cannot_keep_incoming_primary_relay():
+    env = make_env()
+    env.reset_with_scenario(0, 70000, layout_seed=1101)
+    env.roles[:] = ACCESS
+    env.status[:] = 0
+    env.relay_target[:] = -1
+    env.relay_assignment_age[:] = 0
+    env.relay_needed[:] = False
+    env.request_open[:] = False
+
+    # UAV0 requests a Relay, while UAV0 simultaneously volunteers to Relay
+    # for UAV3.  UAV1's claim on UAV0 must therefore be rejected; otherwise
+    # the joint action would create a Relay -> Relay primary-target chain.
+    env.relay_needed[[0, 3]] = True
+    env.request_open[[0, 3]] = True
+    actions = [STAY] * 5
+    actions[0] = env.accept_action_for_target(0, 3)
+    actions[1] = env.accept_action_for_target(1, 0)
+    out = env.step(actions)
+
+    assert env.roles[0] == RELAY
+    assert env.relay_target[0] == 3
+    assert env.roles[1] == ACCESS
+    assert env.relay_target[1] == -1
+    assert [1, 0] in out["info"]["rejected_relay_claims_this_slot"]
