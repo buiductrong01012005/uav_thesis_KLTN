@@ -5,3 +5,4 @@ __pycache__/
 results/
 checkpoints/
 *.zip
+final_results_figures_tables
