@@ -1,7 +1,7 @@
 """Diagnostic one-reset rollout with recovery-aware greedy navigation.
 
 Run in project root after copying the source patch:
-    python scripts/run_role_recovery_diagnostic.py --steps 1200 --policies 4A1R 3A2R dynamic
+    python scripts/run_role_recovery_diagnostic.py --steps 1200 --policies 5A 4A1R 3A2R dynamic
     python scripts/run_role_recovery_diagnostic.py --steps 20000 --policies 4A1R 3A2R dynamic --force
 
 Keeps old baseline output untouched. Uses exact current UE positions: a
@@ -29,6 +29,7 @@ from scripts.run_uav_operational_eval import counts_from_exact_snapshot
 from src.baselines.recovery_aware_role_greedy import (
     RecoveryAwareFixedMixGreedy, RecoveryAwareExhaustiveGreedy,
 )
+from src.baselines.recovery_aware_all_access_greedy import RecoveryAwareAllAccessGreedy
 from src.envs.v4_fixed_mobile_battery_env import ACTIVE, RETURNING, CHARGING
 from src.envs.v0_env import ACCESS, RELAY
 
@@ -51,6 +52,8 @@ def run_one(label: str, steps: int, seed: int, dest: Path, patience: int, log_ev
     obs = env.reset(seed=seed)
     if label == "dynamic":
         policy = RecoveryAwareExhaustiveGreedy(env, zero_service_patience=patience)
+    elif label == "5A":
+        policy = RecoveryAwareAllAccessGreedy(env, zero_service_patience=patience)
     else:
         policy = RecoveryAwareFixedMixGreedy(env, composition=label,
                                                zero_service_patience=patience)
@@ -144,7 +147,7 @@ def main():
     p=argparse.ArgumentParser(description=__doc__)
     p.add_argument("--steps",type=int,default=1200)
     p.add_argument("--scenario-seed",type=int,default=3101)
-    p.add_argument("--policies",nargs="+",choices=["4A1R","3A2R","dynamic"],default=["4A1R","3A2R","dynamic"])
+    p.add_argument("--policies",nargs="+",choices=["5A","4A1R","3A2R","dynamic"],default=["5A","4A1R","3A2R","dynamic"])
     p.add_argument("--outdir",default="results/thesis_continuous_eval/recovery_audit")
     p.add_argument("--zero-service-patience",type=int,default=3)
     p.add_argument("--log-every",type=int,default=200)
