@@ -11,3 +11,4 @@ uav_all_policies_figures
 .ruff_cache/
 docs
 reports
+AGENTS.md

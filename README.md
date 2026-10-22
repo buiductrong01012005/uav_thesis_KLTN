@@ -1,5 +1,10 @@
 # UAV Thesis
 
+Pilot A/B launch, BS5 cố định: xem [hướng dẫn chạy](scripts/training/README_bs5_launch_ab.md).
+Chạy trên Kaggle: dùng [notebook 4 cell](scripts/notebooks/bs5_launch_ab_kaggle.ipynb)
+hoặc [sao chép các cell](scripts/notebooks/README.md). Dataset tự giải nén ZIP;
+kết quả được ghi vào `/kaggle/working`.
+
 Mã nguồn mô phỏng, huấn luyện và đánh giá cho luận văn UAV. Các phiên bản môi trường, thuật toán, cấu hình và giao thức thí nghiệm được giữ nguyên khi sắp xếp repo.
 
 ## Cấu trúc

@@ -1,0 +1,11 @@
+{
+  "failure_mode": "random",
+  "failure_candidates": [0, 1, 2, 3, 4, 5],
+  "failed_bs_idx": 5,
+  "expose_failure_context": true,
+  "record_service_snapshot": true,
+  "horizon": 150,
+  "backhaul_radius_cells": 6.0,
+  "enable_ue_mobility": true,
+  "enable_battery_cycle": true
+}
