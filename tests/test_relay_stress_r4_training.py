@@ -1,9 +1,12 @@
 import numpy as np
 import pytest
 
-import scripts.run_relay_stress_r4_qmix as r4run
-import scripts.run_thesis_no_curriculum_fulltask as r6run
-from scripts.eval_relay_stress_r4_qmix import direct_access_cells, relay_required_ue_mask
+import scripts.training.run_relay_stress_r4_qmix as r4run
+import scripts.training.run_thesis_no_curriculum_fulltask as r6run
+from scripts.evaluation.eval_relay_stress_r4_qmix import (
+    direct_access_cells,
+    relay_required_ue_mask,
+)
 
 
 def test_r4_runner_uses_separate_200m_environment():
@@ -35,9 +38,9 @@ def test_r4_original_reward_is_environment_utility():
     rng = np.random.default_rng(1)
     # Legal random actions; reward must remain the environment's normalized utility.
     actions = []
-    for mask in out['action_mask']:
+    for mask in out["action_mask"]:
         valid = np.flatnonzero(mask)
         actions.append(int(rng.choice(valid)))
     nxt = env.step(actions)
-    assert 0.0 <= float(nxt['reward']) <= 1.0
-    assert np.isfinite(float(nxt['reward']))
+    assert 0.0 <= float(nxt["reward"]) <= 1.0
+    assert np.isfinite(float(nxt["reward"]))

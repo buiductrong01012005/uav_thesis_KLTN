@@ -1,7 +1,10 @@
 import numpy as np
 
-from scripts.run_uav_operational_eval import (
-    LocalAllAccess, counts_from_exact_snapshot, episode_start_snapshot, make_env,
+from scripts.evaluation.run_uav_operational_eval import (
+    LocalAllAccess,
+    counts_from_exact_snapshot,
+    episode_start_snapshot,
+    make_env,
 )
 from src.envs.v0_env import ACCESS
 

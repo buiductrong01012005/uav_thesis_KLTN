@@ -1,12 +1,15 @@
 """Regression tests for adding 5A to the shared role-search/recovery suite."""
+
 from __future__ import annotations
 
 import numpy as np
 
-from scripts.run_uav_continuous_eval import make_continuous_env
+from scripts.evaluation.run_uav_continuous_eval import make_continuous_env
 from src.baselines.recovery_aware_all_access_greedy import RecoveryAwareAllAccessGreedy
 from src.baselines.recovery_aware_role_greedy import _ServiceRecoveryMixin
-from src.baselines.thesis_exhaustive_cartesian_role_greedy import ExhaustiveCartesianRoleGreedy
+from src.baselines.thesis_exhaustive_cartesian_role_greedy import (
+    ExhaustiveCartesianRoleGreedy,
+)
 from src.envs.v0_env import ACCESS
 from src.envs.v4_fixed_mobile_battery_env import ACTIVE, CHARGING
 
@@ -22,12 +25,19 @@ def test_5a_reuses_exactly_the_same_movement_and_recovery_logic():
 def test_5a_is_one_role_vector_and_movement_search_is_action_mask_valid():
     e = make_continuous_env(3101, 500)
     out = e.reset(seed=3101)
-    before = (e.uav_positions.copy(), e.roles.copy(), e.status.copy(),
-              e.battery.copy(), e.ue_positions.copy())
+    before = (
+        e.uav_positions.copy(),
+        e.roles.copy(),
+        e.status.copy(),
+        e.battery.copy(),
+        e.ue_positions.copy(),
+    )
     baseline = RecoveryAwareAllAccessGreedy(e)
     actions = baseline.act(out["action_mask"])
     after = (e.uav_positions, e.roles, e.status, e.battery, e.ue_positions)
-    assert all(np.array_equal(a, b) for a, b in zip(before, after)), "What-if search must not mutate the simulator"
+    assert all(np.array_equal(a, b) for a, b in zip(before, after)), (
+        "What-if search must not mutate the simulator"
+    )
     assert baseline.last_stats["role_vectors_evaluated"] == 1
     assert baseline.last_stats["selected_relay_count"] == 0
     assert baseline.last_stats["selected_access_count"] == 5
@@ -45,8 +55,11 @@ def test_5a_when_some_uavs_are_unavailable_stays_all_access():
     assert b.last_stats["selected_access_count"] == 4
     assert b.last_stats["selected_relay_count"] == 0
     assert b.last_stats["effective_composition"] == "4A0R"
-    assert all(e.decode_action(int(actions[i]))[1] == ACCESS
-               for i in range(e.cfg.num_uavs) if e.status[i] == ACTIVE)
+    assert all(
+        e.decode_action(int(actions[i]))[1] == ACCESS
+        for i in range(e.cfg.num_uavs)
+        if e.status[i] == ACTIVE
+    )
 
 
 def test_5a_recovery_trigger_and_nonteleport_movement():

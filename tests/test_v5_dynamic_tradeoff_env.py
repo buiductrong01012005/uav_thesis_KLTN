@@ -1,7 +1,10 @@
 import numpy as np
 
 from src.envs.v0_env import ACCESS
-from src.envs.v5_dynamic_tradeoff_env import V5DynamicTradeoffConfig, V5DynamicTradeoffEnv
+from src.envs.v5_dynamic_tradeoff_env import (
+    V5DynamicTradeoffConfig,
+    V5DynamicTradeoffEnv,
+)
 
 
 def make_cfg(**kw):
@@ -28,10 +31,14 @@ def test_dynamic_profile_starts_all_access_and_randomizes_battery_phase():
     assert np.all(a.roles == ACCESS)
     assert np.all(a.status == 0)
     assert np.allclose(a.battery, b.battery)
-    assert oa["episode_meta"]["initial_identity_permutation"] == ob["episode_meta"]["initial_identity_permutation"]
+    assert (
+        oa["episode_meta"]["initial_identity_permutation"]
+        == ob["episode_meta"]["initial_identity_permutation"]
+    )
     assert (
         oa["episode_meta"]["initial_battery"] != oc["episode_meta"]["initial_battery"]
-        or oa["episode_meta"]["initial_identity_permutation"] != oc["episode_meta"]["initial_identity_permutation"]
+        or oa["episode_meta"]["initial_identity_permutation"]
+        != oc["episode_meta"]["initial_identity_permutation"]
     )
     assert min(a.battery) >= 35.0 and max(a.battery) <= 100.0
 

@@ -11,9 +11,7 @@ from src.envs.v7_r6_macro_relay_stable_env import (
 
 
 def make_env(horizon=30):
-    return V7R6MacroRelayStableEnv(
-        V7R6MacroRelayStableConfig(seed=1101, horizon=horizon)
-    )
+    return V7R6MacroRelayStableEnv(V7R6MacroRelayStableConfig(seed=1101, horizon=horizon))
 
 
 def test_v7_shapes_and_action_count():
@@ -72,7 +70,11 @@ def test_relay_macro_uses_assisted_plan_and_is_one_slot(monkeypatch):
     action = env.relay_action_for_target(actor, target)
     assert env.get_action_mask()[actor, action] == 1
 
-    monkeypatch.setattr(env, "_best_relay_plan", lambda rid, target_cell: (MOVE_EAST, (1, 1.0, 0.0, 0.0)))
+    monkeypatch.setattr(
+        env,
+        "_best_relay_plan",
+        lambda rid, target_cell: (MOVE_EAST, (1, 1.0, 0.0, 0.0)),
+    )
     actions = [STAY] * 5
     actions[actor] = action
     out = env.step(actions)
@@ -97,11 +99,14 @@ def test_relay_move_controller_never_scores_worse_than_stay():
     move = env._best_relay_move(rid, target_cell)
     chosen = env.uav_positions[rid] + env_move_delta(move)
     stay = env.uav_positions[rid].copy()
-    assert env._relay_candidate_score(target_cell, chosen) >= env._relay_candidate_score(target_cell, stay)
+    assert env._relay_candidate_score(target_cell, chosen) >= env._relay_candidate_score(
+        target_cell, stay
+    )
 
 
 def env_move_delta(move):
     from src.envs.v0_env import MOVE_DELTAS
+
     return MOVE_DELTAS[int(move)]
 
 

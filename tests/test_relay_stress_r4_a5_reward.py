@@ -1,8 +1,8 @@
 import numpy as np
 import pytest
 
-import scripts.run_relay_stress_r4_a5_qmix as a5
-import scripts.run_relay_stress_r4_qmix as r4
+import scripts.training.run_relay_stress_r4_a5_qmix as a5
+import scripts.training.run_relay_stress_r4_qmix as r4
 
 
 def test_a5_keeps_r4_geometry_and_action_space():
@@ -28,7 +28,9 @@ def test_normalized_required_service_partial_and_capped():
 
 
 def test_normalized_required_service_zero_when_no_required_ues():
-    assert a5.normalized_required_service(np.array([1.0, 2.0]), np.array([False, False]), 4.0) == 0.0
+    assert (
+        a5.normalized_required_service(np.array([1.0, 2.0]), np.array([False, False]), 4.0) == 0.0
+    )
 
 
 def test_a5_reward_formula_lambda_point_one():
@@ -40,9 +42,9 @@ def test_a5_environment_reward_remains_original_utility_but_metric_is_captured()
     out = env.reset(seed=3101)
     # Stay+Access for all UAVs is action 1 in Cartesian encoding (move 0=Stay, role 1?);
     # avoid assuming encoding by picking the first legal action per UAV.
-    actions = [int(np.flatnonzero(mask)[0]) for mask in out['action_mask']]
+    actions = [int(np.flatnonzero(mask)[0]) for mask in out["action_mask"]]
     nxt = env.step(actions)
-    assert 0.0 <= float(nxt['reward']) <= 1.0
+    assert 0.0 <= float(nxt["reward"]) <= 1.0
     assert 0.0 <= float(env.last_required_service_score) <= 1.0
     assert env.last_relay_required_count > 0
     assert env.last_relay_required_served_count >= 0

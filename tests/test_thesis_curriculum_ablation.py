@@ -5,9 +5,7 @@ from src.envs.thesis_cartesian_r6_curriculum_env import (
 
 
 def test_direct_ablation_environment_is_battery_on_cartesian():
-    env = CartesianR6BatteryEnv(
-        CartesianR6BatteryConfig(seed=1101, horizon=10)
-    )
+    env = CartesianR6BatteryEnv(CartesianR6BatteryConfig(seed=1101, horizon=10))
     out = env.reset(seed=1101)
     assert env.cfg.enable_battery_cycle is True
     assert env.n_actions == 10

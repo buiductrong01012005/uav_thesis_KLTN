@@ -1,6 +1,6 @@
 import numpy as np
 
-from scripts.run_v4_a1_r4_idrand_scratch_100k import make_env, reset_env
+from scripts.training.run_v4_a1_r4_idrand_scratch_100k import make_env, reset_env
 from src.envs.v0_env import ACCESS, RELAY
 from src.envs.v4_a1_identity_randomization import RELAY_ANCHOR_CELL
 

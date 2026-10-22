@@ -13,11 +13,13 @@ from src.envs.v4_final_fixed_map_env import V4FinalFixedMapConfig
 
 
 def make_no_battery_env():
-    env = V4ToggleRoleEnv(V4FinalFixedMapConfig(
-        seed=1,
-        enable_ue_mobility=False,
-        enable_battery_cycle=False,
-    ))
+    env = V4ToggleRoleEnv(
+        V4FinalFixedMapConfig(
+            seed=1,
+            enable_ue_mobility=False,
+            enable_battery_cycle=False,
+        )
+    )
     env.reset(seed=1)
     return env
 

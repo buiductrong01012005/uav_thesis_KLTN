@@ -5,7 +5,7 @@ from src.envs.v9_r6_macro_relay_battery_focus_env import (
     V9R6MacroRelayBatteryFocusConfig,
     V9R6MacroRelayBatteryFocusEnv,
 )
-from scripts.run_v9_r6_battery_transition_curriculum import (
+from scripts.training.run_v9_r6_battery_transition_curriculum import (
     _return_focus_state,
     sample_transition_focused_batch,
 )
@@ -86,6 +86,7 @@ def test_transition_focused_sampler_returns_requested_batch_size():
 
 def test_training_battery_range_keeps_full_lifecycle_inside_horizon():
     from src.envs.v4_fixed_mobile_battery_env import RETURNING, CHARGING
+
     for b in (24.0, 36.0):
         env = V9R6MacroRelayBatteryFocusEnv(
             V9R6MacroRelayBatteryFocusConfig(

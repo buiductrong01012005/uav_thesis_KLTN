@@ -3,12 +3,12 @@ import numpy as np
 from src.envs.v0_env import ACCESS
 from src.envs.final_movement_only_env import (
     FinalMovementOnlyNoBatteryEnv,
-    FinalMovementOnlyBatteryEnv,
     FinalMovementOnlyBatteryFocusEnv,
 )
 from src.envs.v7_r6_macro_relay_stable_env import V7R6MacroRelayStableConfig
-from src.envs.v8_r6_macro_relay_battery_env import V8R6MacroRelayBatteryConfig
-from src.envs.v9_r6_macro_relay_battery_focus_env import V9R6MacroRelayBatteryFocusConfig
+from src.envs.v9_r6_macro_relay_battery_focus_env import (
+    V9R6MacroRelayBatteryFocusConfig,
+)
 from src.baselines.final_fast_greedy import FinalFastGreedyPolicy
 from src.envs.v9_r6_macro_relay_battery_focus_env import V9R6MacroRelayBatteryFocusEnv
 
@@ -39,7 +39,7 @@ def test_battery_focus_wrapper_keeps_five_action_masks_during_lifecycle():
         mask = out["action_mask"]
         assert mask.shape == (5, 5)
         actions = [4 if mask[i, 4] else int(np.flatnonzero(mask[i])[0]) for i in range(5)]
-        before = env.status.copy()
+        _before = env.status.copy()
         out = env.step(actions)
         if np.any(env.status != 0):
             saw_unavailable = True

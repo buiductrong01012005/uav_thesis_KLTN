@@ -1,7 +1,7 @@
 import numpy as np
 
 from src.envs.v0_env import ACCESS, RELAY
-from scripts.run_v4_a1_relay_dropout_100k import (
+from scripts.training.run_v4_a1_relay_dropout_100k import (
     initial_roles_for_residual,
     make_env,
     reset_env,
@@ -35,9 +35,6 @@ def test_dynamic_role_actions_are_not_masked():
     env = make_env()
     out = reset_env(env, 2)
     for i in range(env.cfg.num_uavs):
-        roles = {
-            env.decode_action(int(a))[1]
-            for a in np.flatnonzero(out["action_mask"][i])
-        }
+        roles = {env.decode_action(int(a))[1] for a in np.flatnonzero(out["action_mask"][i])}
         assert ACCESS in roles
         assert RELAY in roles

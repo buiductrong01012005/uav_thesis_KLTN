@@ -2,8 +2,8 @@ from dataclasses import asdict
 import numpy as np
 
 from src.envs.v0_env import ACCESS, RELAY
-from scripts.run_v4_a1_relay_dropout_100k import make_env as make_r5_env
-from scripts.run_v4_a1_r4_100k import make_env, reset_env
+from scripts.training.run_v4_a1_relay_dropout_100k import make_env as make_r5_env
+from scripts.training.run_v4_a1_r4_100k import make_env, reset_env
 
 
 def test_r4_changes_only_backhaul_radius_from_r5_a1():

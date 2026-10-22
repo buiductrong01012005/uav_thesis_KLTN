@@ -1,7 +1,7 @@
 import pytest
 
-import scripts.run_relay_stress_r4_a5_lam1_pilot as launcher
-import scripts.run_relay_stress_r4_a5_qmix as a5
+import scripts.launchers.run_relay_stress_r4_a5_lam1_pilot as launcher
+import scripts.training.run_relay_stress_r4_a5_qmix as a5
 
 
 def test_lambda1_launcher_is_exactly_one():
@@ -9,8 +9,8 @@ def test_lambda1_launcher_is_exactly_one():
 
 
 def test_lambda1_has_separate_output_folder():
-    assert 'lam1p00' in launcher.DEFAULT_OUTDIR
-    assert 'lam0p10' not in launcher.DEFAULT_OUTDIR
+    assert "lam1p00" in launcher.DEFAULT_OUTDIR
+    assert "lam0p10" not in launcher.DEFAULT_OUTDIR
 
 
 def test_reward_scale_lambda1():

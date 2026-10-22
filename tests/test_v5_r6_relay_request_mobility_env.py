@@ -9,9 +9,7 @@ from src.envs.v5_r6_relay_request_mobility_env import (
 
 
 def make_env(seed=11):
-    return V5R6RelayRequestMobilityEnv(
-        V5R6RelayRequestMobilityConfig(seed=seed, horizon=30)
-    )
+    return V5R6RelayRequestMobilityEnv(V5R6RelayRequestMobilityConfig(seed=seed, horizon=30))
 
 
 def test_r6_profile_keeps_canonical_map_and_starts_all_access():
@@ -37,14 +35,14 @@ def test_r6_profile_has_open_relay_requests_without_handcrafted_waypoints():
 
 def test_accept_and_release_work_on_r6_profile():
     env = make_env()
-    out = env.reset(seed=11)
+    _out = env.reset(seed=11)
     target = int(np.flatnonzero(env.request_open)[0])
     actor = next(i for i in range(env.cfg.num_uavs) if i != target)
     action = env.accept_action_for_target(actor, target)
     assert ACCEPT_BASE <= action < RELEASE_RELAY
     actions = [STAY] * env.cfg.num_uavs
     actions[actor] = action
-    out = env.step(actions)
+    _out = env.step(actions)
     assert env.roles[actor] == RELAY
     assert env.relay_target[actor] == target
 

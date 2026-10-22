@@ -88,7 +88,7 @@ def test_full_return_charge_rejoin_cycle_occurs_within_horizon():
     seen_return = seen_charge = seen_rejoin = False
     for _ in range(cfg.horizon):
         actions = [env.encode_action(4, ACCESS)] * cfg.num_uavs
-        out = env.step(actions)
+        _out = env.step(actions)
         seen_return |= bool(env.status[target] == RETURNING)
         seen_charge |= bool(env.status[target] == CHARGING)
         if seen_charge and env.status[target] == ACTIVE:
