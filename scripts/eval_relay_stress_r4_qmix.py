@@ -109,7 +109,7 @@ def evaluate_checkpoint(checkpoint: Path, test_seeds, horizon: int):
             'utility', 'served_ues', 'fully_satisfied_ues', 'relay_served_ues',
             'relay_required_ues', 'relay_required_served_ues', 'active_uavs',
             'relay_uavs', 'access_uavs', 'deep_access_uavs', 'steps_any_deep_access',
-            'role_switches', 'battery_drain',
+            'role_switches', 'battery_drain', 'relay_required_service_score',
         )}
         steps = 0
         while True:
@@ -147,6 +147,7 @@ def evaluate_checkpoint(checkpoint: Path, test_seeds, horizon: int):
             sums['relay_served_ues'] += int(relay_served.sum())
             sums['relay_required_ues'] += int(req.sum())
             sums['relay_required_served_ues'] += int((req & served).sum())
+            sums['relay_required_service_score'] += (float(np.mean(np.clip(rates[req] / env.cfg.ue_demand_mbps, 0.0, 1.0))) if np.any(req) else 0.0)
             sums['active_uavs'] += int(active.sum())
             sums['relay_uavs'] += int(out['info'].get('num_relay', 0))
             sums['access_uavs'] += int(access.sum())
@@ -168,6 +169,7 @@ def evaluate_checkpoint(checkpoint: Path, test_seeds, horizon: int):
             'mean_relay_required_ues': sums['relay_required_ues'] / steps,
             'mean_relay_required_served_ues': sums['relay_required_served_ues'] / steps,
             'relay_required_service_fraction': (sums['relay_required_served_ues'] / sums['relay_required_ues'] if sums['relay_required_ues'] else 0.0),
+            'mean_relay_required_service_score': sums['relay_required_service_score'] / steps,
             'mean_active_uavs': sums['active_uavs'] / steps,
             'mean_relay_uavs': sums['relay_uavs'] / steps,
             'mean_access_uavs': sums['access_uavs'] / steps,
