@@ -48,16 +48,12 @@ class QMixer(nn.Module):
         # states:    [B, state_dim]
         batch = agent_qs.shape[0]
 
-        w1 = torch.abs(self.hyper_w1(states)).view(
-            batch, self.n_agents, self.embed_dim
-        )
+        w1 = torch.abs(self.hyper_w1(states)).view(batch, self.n_agents, self.embed_dim)
         b1 = self.hyper_b1(states).view(batch, 1, self.embed_dim)
 
         hidden = F.elu(torch.bmm(agent_qs.unsqueeze(1), w1) + b1)
 
-        w_final = torch.abs(self.hyper_w_final(states)).view(
-            batch, self.embed_dim, 1
-        )
+        w_final = torch.abs(self.hyper_w_final(states)).view(batch, self.embed_dim, 1)
         v = self.v(states).view(batch, 1, 1)
 
         q_tot = torch.bmm(hidden, w_final) + v
@@ -145,7 +141,13 @@ class QMIXLearner:
         self.optimizer = torch.optim.Adam(params, lr=lr)
 
     @torch.no_grad()
-    def act(self, obs: np.ndarray, action_mask: np.ndarray, epsilon: float, rng: np.random.Generator):
+    def act(
+        self,
+        obs: np.ndarray,
+        action_mask: np.ndarray,
+        epsilon: float,
+        rng: np.random.Generator,
+    ):
         obs_t = torch.as_tensor(obs, dtype=torch.float32, device=self.device)
         q = self.agent(obs_t).cpu().numpy()
 
@@ -172,9 +174,7 @@ class QMIXLearner:
 
         B = obs.shape[0]
 
-        q_all = self.agent(obs.view(B * self.n_agents, -1)).view(
-            B, self.n_agents, self.n_actions
-        )
+        q_all = self.agent(obs.view(B * self.n_agents, -1)).view(B, self.n_agents, self.n_actions)
         chosen_q = torch.gather(q_all, 2, actions.unsqueeze(-1)).squeeze(-1)
         q_tot = self.mixer(chosen_q, states)
 
@@ -186,12 +186,10 @@ class QMIXLearner:
             online_next_q = online_next_q.masked_fill(~next_masks, -1e9)
             next_actions = online_next_q.argmax(dim=-1, keepdim=True)
 
-            target_next_q_all = self.target_agent(
-                next_obs.view(B * self.n_agents, -1)
-            ).view(B, self.n_agents, self.n_actions)
-            target_next_q = torch.gather(
-                target_next_q_all, 2, next_actions
-            ).squeeze(-1)
+            target_next_q_all = self.target_agent(next_obs.view(B * self.n_agents, -1)).view(
+                B, self.n_agents, self.n_actions
+            )
+            target_next_q = torch.gather(target_next_q_all, 2, next_actions).squeeze(-1)
 
             target_q_tot = self.target_mixer(target_next_q, next_states)
             td_target = rewards + self.gamma * (1.0 - done) * target_q_tot
@@ -268,12 +266,12 @@ class SeparateAgentQMIXLearner:
         self.gamma = gamma
         self.device = torch.device(device)
 
-        self.agents = nn.ModuleList([
-            AgentQNetwork(obs_dim, n_actions, hidden_dim) for _ in range(n_agents)
-        ]).to(self.device)
-        self.target_agents = nn.ModuleList([
-            AgentQNetwork(obs_dim, n_actions, hidden_dim) for _ in range(n_agents)
-        ]).to(self.device)
+        self.agents = nn.ModuleList(
+            [AgentQNetwork(obs_dim, n_actions, hidden_dim) for _ in range(n_agents)]
+        ).to(self.device)
+        self.target_agents = nn.ModuleList(
+            [AgentQNetwork(obs_dim, n_actions, hidden_dim) for _ in range(n_agents)]
+        ).to(self.device)
         self.mixer = QMixer(n_agents, state_dim, mixing_embed_dim).to(self.device)
         self.target_mixer = QMixer(n_agents, state_dim, mixing_embed_dim).to(self.device)
         self.update_targets()
@@ -289,7 +287,7 @@ class SeparateAgentQMIXLearner:
             if rng.random() < epsilon:
                 actions.append(int(rng.choice(valid)))
                 continue
-            o = torch.as_tensor(obs[i:i+1], dtype=torch.float32, device=self.device)
+            o = torch.as_tensor(obs[i : i + 1], dtype=torch.float32, device=self.device)
             q = self.agents[i](o)[0].cpu().numpy()
             q[~action_mask[i].astype(bool)] = -1e9
             actions.append(int(np.argmax(q)))

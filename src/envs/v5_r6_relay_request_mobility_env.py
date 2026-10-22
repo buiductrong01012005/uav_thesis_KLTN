@@ -20,6 +20,7 @@ All UAVs start as Access.  A Relay can only be created by an RL AcceptRelay
 choice on an open request.  This class deliberately does *not* use the V5
 waypoint trade-off map; hotspot motion is the canonical stochastic V4 model.
 """
+
 from __future__ import annotations
 
 from dataclasses import dataclass
@@ -70,13 +71,15 @@ class V5R6RelayRequestMobilityEnv(V5RelayRequestEnv):
 
         self._refresh_request_state()
         out = self._refresh_output(out)
-        out["episode_meta"].update({
-            "profile": "v5_r6_relay_request_natural_mobility",
-            "canonical_v4_topology": True,
-            "waypoint_tradeoff_map": False,
-            "all_access_initially": True,
-            "backhaul_radius_cells": float(self.cfg.backhaul_radius_cells),
-            "ue_mobility": True,
-            "battery_cycle": False,
-        })
+        out["episode_meta"].update(
+            {
+                "profile": "v5_r6_relay_request_natural_mobility",
+                "canonical_v4_topology": True,
+                "waypoint_tradeoff_map": False,
+                "all_access_initially": True,
+                "backhaul_radius_cells": float(self.cfg.backhaul_radius_cells),
+                "ue_mobility": True,
+                "battery_cycle": False,
+            }
+        )
         return out

@@ -11,6 +11,7 @@ future rollout.  For the five-UAV thesis setting it is a strong, transparent
 online heuristic, but the 2^N role enumeration is not claimed to scale to large
 fleets.
 """
+
 from __future__ import annotations
 
 from itertools import product
@@ -92,7 +93,9 @@ class ExhaustiveCartesianRoleGreedy:
             elif abs(score - best_score) <= 1e-12:
                 if n_relay < current_relays:
                     best_roles = roles.copy()
-                elif n_relay == current_relays and tuple(roles.tolist()) < tuple(best_roles.tolist()):
+                elif n_relay == current_relays and tuple(roles.tolist()) < tuple(
+                    best_roles.tolist()
+                ):
                     best_roles = roles.copy()
 
         return best_roles, float(best_score), int(evaluated), family_counts
@@ -144,7 +147,7 @@ class ExhaustiveCartesianRoleGreedy:
         n_relay = int(np.sum(roles[active_ids] == RELAY)) if n_active else 0
         self.last_stats = {
             "role_vectors_evaluated": n_roles,
-            "expected_role_vectors": int(2 ** n_active),
+            "expected_role_vectors": int(2**n_active),
             "role_family_vector_counts": {str(k): int(v) for k, v in family_counts.items()},
             "selected_relay_count": n_relay,
             "selected_access_count": int(n_active - n_relay),

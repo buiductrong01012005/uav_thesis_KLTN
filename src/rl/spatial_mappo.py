@@ -4,6 +4,7 @@ This module is intentionally minimal for an algorithm-family audit. The task,
 reward, observations, action space, and spatial inductive bias are unchanged;
 only the MARL learning rule differs from QMIX.
 """
+
 from __future__ import annotations
 
 import torch

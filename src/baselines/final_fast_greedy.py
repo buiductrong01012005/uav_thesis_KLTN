@@ -8,6 +8,7 @@ online reference:
      request signal and assisted-relay geometry score;
   2) move remaining Access UAVs one step using a load/backhaul-aware local score.
 """
+
 from __future__ import annotations
 
 import numpy as np

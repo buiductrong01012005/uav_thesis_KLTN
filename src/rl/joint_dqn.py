@@ -71,7 +71,7 @@ class JointDQN:
     ):
         self.n_agents = n_agents
         self.n_local_actions = n_local_actions
-        self.n_joint_actions = n_local_actions ** n_agents
+        self.n_joint_actions = n_local_actions**n_agents
         self.gamma = gamma
         self.device = torch.device(device)
 
@@ -113,7 +113,13 @@ class JointDQN:
         return validity
 
     @torch.no_grad()
-    def act(self, state: np.ndarray, local_mask: np.ndarray, epsilon: float, rng: np.random.Generator):
+    def act(
+        self,
+        state: np.ndarray,
+        local_mask: np.ndarray,
+        epsilon: float,
+        rng: np.random.Generator,
+    ):
         mask = self.joint_mask(local_mask)
         valid = np.flatnonzero(mask)
         if rng.random() < epsilon:

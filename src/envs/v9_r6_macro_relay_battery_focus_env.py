@@ -12,6 +12,7 @@ Policy actions remain:
 Battery lifecycle remains environment-controlled:
     Active -> Returning -> Charging -> Active
 """
+
 from __future__ import annotations
 
 from dataclasses import dataclass
@@ -62,15 +63,19 @@ class V9R6MacroRelayBatteryFocusEnv(V8R6MacroRelayBatteryEnv):
         else:
             self.sampled_residual_initial_battery = float(self.cfg.residual_initial_battery)
 
-        out["episode_meta"].update({
-            "profile": "v9_r6_macro_relay_battery_focus",
-            "residual_battery_randomized_for_training": bool(self.cfg.randomize_residual_battery),
-            "sampled_residual_initial_battery": float(self.sampled_residual_initial_battery),
-            "residual_battery_training_range": [
-                float(self.cfg.residual_battery_min),
-                float(self.cfg.residual_battery_max),
-            ],
-        })
+        out["episode_meta"].update(
+            {
+                "profile": "v9_r6_macro_relay_battery_focus",
+                "residual_battery_randomized_for_training": bool(
+                    self.cfg.randomize_residual_battery
+                ),
+                "sampled_residual_initial_battery": float(self.sampled_residual_initial_battery),
+                "residual_battery_training_range": [
+                    float(self.cfg.residual_battery_min),
+                    float(self.cfg.residual_battery_max),
+                ],
+            }
+        )
         return out
 
     def return_energy_margin(self, agent_id: int) -> float:
@@ -83,9 +88,8 @@ class V9R6MacroRelayBatteryFocusEnv(V8R6MacroRelayBatteryEnv):
         if self.status[i] != ACTIVE:
             return float("nan")
         _, dist_steps = self._nearest_station(self.uav_positions[i])
-        threshold = (
-            float(dist_steps) * float(self.cfg.returning_step_drain)
-            + float(self.cfg.return_safety_margin)
+        threshold = float(dist_steps) * float(self.cfg.returning_step_drain) + float(
+            self.cfg.return_safety_margin
         )
         return float(self.battery[i] - threshold)
 
@@ -99,12 +103,14 @@ class V9R6MacroRelayBatteryFocusEnv(V8R6MacroRelayBatteryEnv):
 
     def _episode_meta(self) -> dict:
         meta = super()._episode_meta()
-        meta.update({
-            "control_version": "V9_R6_battery_transition_curriculum",
-            "policy_action_changed_from_v8": False,
-            "reward_changed_from_v8": False,
-            "training_only_residual_battery_randomization": bool(
-                self.cfg.randomize_residual_battery
-            ),
-        })
+        meta.update(
+            {
+                "control_version": "V9_R6_battery_transition_curriculum",
+                "policy_action_changed_from_v8": False,
+                "reward_changed_from_v8": False,
+                "training_only_residual_battery_randomization": bool(
+                    self.cfg.randomize_residual_battery
+                ),
+            }
+        )
         return meta

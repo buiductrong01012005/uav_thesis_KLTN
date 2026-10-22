@@ -35,16 +35,16 @@ class V4FinalFixedMapConfig(V4FixedMobileBatteryConfig):
     horizon: int = 150
 
     # Hybrid coverage + Shannon model. Radii are horizontal distances.
-    access_radius_cells: float = 4.0      # 200 m
-    backhaul_radius_cells: float = 5.0    # 250 m for A->BS, A->R, R->BS
+    access_radius_cells: float = 4.0  # 200 m
+    backhaul_radius_cells: float = 5.0  # 250 m for A->BS, A->R, R->BS
 
     # Battery: normalized units with round, ratio-based parameters.
     max_battery: float = 100.0
     hover_drain: float = 0.1
     move_extra_drain: float = 0.1
     relay_radio_drain: float = 0.1
-    access_radio_drain: float = 0.2       # Access communication = 2 x Relay
-    returning_step_drain: float = 0.2     # hover + movement, no communication
+    access_radio_drain: float = 0.2  # Access communication = 2 x Relay
+    returning_step_drain: float = 0.2  # hover + movement, no communication
     return_safety_margin: float = 5.0
     charge_rate_per_slot: float = 5.0
     rejoin_threshold: float = 80.0
@@ -67,8 +67,8 @@ class V4FinalFixedMapConfig(V4FixedMobileBatteryConfig):
     ue_local_speed_min_mps: float = 0.5
     ue_local_speed_max_mps: float = 1.0
     ue_local_turn_noise_std_rad: float = 0.12
-    group_spread_cells: float = 1.5          # 75 m typical initial spread
-    max_ue_offset_cells: float = 2.0         # keep a group spatially coherent
+    group_spread_cells: float = 1.5  # 75 m typical initial spread
+    max_ue_offset_cells: float = 2.0  # keep a group spatially coherent
 
     # Ablation toggles. These do not change the system model; they let us add
     # dynamics one factor at a time and justify each component experimentally.
@@ -131,9 +131,9 @@ class V4FinalFixedMapEnv(V4FixedMobileBatteryEnv):
         center_speed_cells = (
             self.cfg.group_center_speed_mps * self.cfg.slot_s / self.cfg.cell_size_m
         )
-        self.hotspot_vel = np.stack(
-            [np.sin(center_angles), np.cos(center_angles)], axis=1
-        ) * center_speed_cells
+        self.hotspot_vel = (
+            np.stack([np.sin(center_angles), np.cos(center_angles)], axis=1) * center_speed_cells
+        )
 
         # Every UE has its own local heading/speed around the moving reference.
         local_speed_mps = self.rng.uniform(
@@ -143,9 +143,10 @@ class V4FinalFixedMapEnv(V4FixedMobileBatteryEnv):
         )
         local_angles = self.rng.uniform(0.0, 2.0 * math.pi, size=self.cfg.num_ues)
         local_speed_cells = local_speed_mps * self.cfg.slot_s / self.cfg.cell_size_m
-        self.ue_local_velocity_cells_per_slot = np.stack(
-            [np.sin(local_angles), np.cos(local_angles)], axis=1
-        ) * local_speed_cells[:, None]
+        self.ue_local_velocity_cells_per_slot = (
+            np.stack([np.sin(local_angles), np.cos(local_angles)], axis=1)
+            * local_speed_cells[:, None]
+        )
 
         self._project_group_positions_inside_region()
 
@@ -161,9 +162,7 @@ class V4FinalFixedMapEnv(V4FixedMobileBatteryEnv):
             return
 
         # 1) Persistent, slowly turning reference centers.
-        turns = self.rng.normal(
-            0.0, self.cfg.group_turn_noise_std_rad, size=self.cfg.num_hotspots
-        )
+        turns = self.rng.normal(0.0, self.cfg.group_turn_noise_std_rad, size=self.cfg.num_hotspots)
         self.hotspot_vel = self._rotate_vectors(self.hotspot_vel, turns)
         for h in range(self.cfg.num_hotspots):
             cur = self.hotspot_centers[h].copy()
@@ -258,9 +257,7 @@ class V4FinalFixedMapEnv(V4FixedMobileBatteryEnv):
         norms = np.linalg.norm(self.ue_offsets, axis=1)
         bad = norms > self.cfg.max_ue_offset_cells
         if np.any(bad):
-            self.ue_offsets[bad] *= (
-                self.cfg.max_ue_offset_cells / norms[bad]
-            )[:, None]
+            self.ue_offsets[bad] *= (self.cfg.max_ue_offset_cells / norms[bad])[:, None]
 
     def _project_group_positions_inside_region(self):
         for u in range(self.cfg.num_ues):
@@ -284,14 +281,12 @@ class V4FinalFixedMapEnv(V4FixedMobileBatteryEnv):
     def ue_local_speed_mps(self) -> np.ndarray:
         return (
             np.linalg.norm(self.ue_local_velocity_cells_per_slot, axis=1)
-            * self.cfg.cell_size_m / self.cfg.slot_s
+            * self.cfg.cell_size_m
+            / self.cfg.slot_s
         )
 
     def group_center_speed_mps(self) -> np.ndarray:
-        return (
-            np.linalg.norm(self.hotspot_vel, axis=1)
-            * self.cfg.cell_size_m / self.cfg.slot_s
-        )
+        return np.linalg.norm(self.hotspot_vel, axis=1) * self.cfg.cell_size_m / self.cfg.slot_s
 
     # ------------------------------ compact state -----------------------------
 
@@ -331,11 +326,13 @@ class V4FinalFixedMapEnv(V4FixedMobileBatteryEnv):
             else:
                 feats.append(0.0)
             feats.append(float(self.battery[i] / self.cfg.max_battery))
-            feats.extend([
-                float(self.status[i] == ACTIVE),
-                float(self.status[i] == RETURNING),
-                float(self.status[i] == CHARGING),
-            ])
+            feats.extend(
+                [
+                    float(self.status[i] == ACTIVE),
+                    float(self.status[i] == RETURNING),
+                    float(self.status[i] == CHARGING),
+                ]
+            )
         return np.asarray(feats, dtype=np.float32)
 
     def get_obs(self) -> np.ndarray:
@@ -346,7 +343,6 @@ class V4FinalFixedMapEnv(V4FixedMobileBatteryEnv):
             aid[i] = 1.0
             out.append(np.concatenate([state, aid]))
         return np.stack(out, axis=0)
-
 
     def step(self, actions):
         out = super().step(actions)
@@ -376,7 +372,9 @@ class V4FinalFixedMapEnv(V4FixedMobileBatteryEnv):
 
     def _xy_within_radius_m(self, p1_xy, p2_xy, radius_cells: float) -> bool:
         return bool(
-            np.linalg.norm(np.asarray(p1_xy, dtype=np.float64) - np.asarray(p2_xy, dtype=np.float64))
+            np.linalg.norm(
+                np.asarray(p1_xy, dtype=np.float64) - np.asarray(p2_xy, dtype=np.float64)
+            )
             <= radius_cells * self.cfg.cell_size_m + 1e-9
         )
 
@@ -402,8 +400,10 @@ class V4FinalFixedMapEnv(V4FixedMobileBatteryEnv):
                     continue
                 ue_xy = self._cell_to_xy(ue_grid)
                 pl = self._a2g_path_loss_db(
-                    ue_xy, self.cfg.ue_height_m,
-                    uav_xy, self.cfg.uav_altitude_m,
+                    ue_xy,
+                    self.cfg.ue_height_m,
+                    uav_xy,
+                    self.cfg.uav_altitude_m,
                     self.cfg.access_fc_hz,
                 )
                 scores[u, jj] = self.cfg.access_tx_dbm - pl
@@ -448,8 +448,10 @@ class V4FinalFixedMapEnv(V4FixedMobileBatteryEnv):
             for u in users:
                 ue_xy = self._cell_to_xy(self.ue_positions[u])
                 pl = self._a2g_path_loss_db(
-                    ue_xy, self.cfg.ue_height_m,
-                    uav_xy, self.cfg.uav_altitude_m,
+                    ue_xy,
+                    self.cfg.ue_height_m,
+                    uav_xy,
+                    self.cfg.uav_altitude_m,
                     self.cfg.access_fc_hz,
                 )
                 rates[u] = self._shannon_rate_mbps(tx_dbm_per_ue - pl, bw)
@@ -510,10 +512,10 @@ class V4FinalFixedMapEnv(V4FixedMobileBatteryEnv):
             clients = [int(a) for a in access_ids if routes[int(a)] == int(rid)]
             if not clients:
                 continue
-            weights = np.asarray([
-                max(1e-6, min(access_offer[a], relay_first_cap[(a, int(rid))]))
-                for a in clients
-            ], dtype=np.float64)
+            weights = np.asarray(
+                [max(1e-6, min(access_offer[a], relay_first_cap[(a, int(rid))])) for a in clients],
+                dtype=np.float64,
+            )
             shares = relay_bs_cap[int(rid)] * weights / weights.sum()
             for a, share in zip(clients, shares):
                 bh_cap[a] = min(relay_first_cap[(a, int(rid))], float(share))
@@ -531,34 +533,36 @@ class V4FinalFixedMapEnv(V4FixedMobileBatteryEnv):
 
     def _episode_meta(self) -> dict:
         meta = super()._episode_meta()
-        meta.update({
-            "hybrid_radius_shannon": True,
-            "access_radius_cells": float(self.cfg.access_radius_cells),
-            "backhaul_radius_cells": float(self.cfg.backhaul_radius_cells),
-            "coarse_obs_size": int(self.cfg.coarse_obs_size),
-            "residual_uav_idx": int(getattr(self, "residual_uav_idx", -1)),
-            "residual_initial_battery": float(self.cfg.residual_initial_battery),
-            "mobility_model": {
-                "type": "correlated_moving_groups_with_individual_local_motion",
-                "num_groups": int(self.cfg.num_hotspots),
-                "group_center_speed_mps": float(self.cfg.group_center_speed_mps),
-                "ue_local_speed_mps": [
-                    float(self.cfg.ue_local_speed_min_mps),
-                    float(self.cfg.ue_local_speed_max_mps),
-                ],
-                "group_spread_cells": float(self.cfg.group_spread_cells),
-                "max_ue_offset_cells": float(self.cfg.max_ue_offset_cells),
-                "confined_to_failed_bs_region": True,
-            },
-            "battery_model": {
-                "hover": float(self.cfg.hover_drain),
-                "move_extra": float(self.cfg.move_extra_drain),
-                "access_radio": float(self.cfg.access_radio_drain),
-                "relay_radio": float(self.cfg.relay_radio_drain),
-                "return_step": float(self.cfg.returning_step_drain),
-                "reserve": float(self.cfg.return_safety_margin),
-                "charge_per_slot": float(self.cfg.charge_rate_per_slot),
-                "rejoin_threshold": float(self.cfg.rejoin_threshold),
-            },
-        })
+        meta.update(
+            {
+                "hybrid_radius_shannon": True,
+                "access_radius_cells": float(self.cfg.access_radius_cells),
+                "backhaul_radius_cells": float(self.cfg.backhaul_radius_cells),
+                "coarse_obs_size": int(self.cfg.coarse_obs_size),
+                "residual_uav_idx": int(getattr(self, "residual_uav_idx", -1)),
+                "residual_initial_battery": float(self.cfg.residual_initial_battery),
+                "mobility_model": {
+                    "type": "correlated_moving_groups_with_individual_local_motion",
+                    "num_groups": int(self.cfg.num_hotspots),
+                    "group_center_speed_mps": float(self.cfg.group_center_speed_mps),
+                    "ue_local_speed_mps": [
+                        float(self.cfg.ue_local_speed_min_mps),
+                        float(self.cfg.ue_local_speed_max_mps),
+                    ],
+                    "group_spread_cells": float(self.cfg.group_spread_cells),
+                    "max_ue_offset_cells": float(self.cfg.max_ue_offset_cells),
+                    "confined_to_failed_bs_region": True,
+                },
+                "battery_model": {
+                    "hover": float(self.cfg.hover_drain),
+                    "move_extra": float(self.cfg.move_extra_drain),
+                    "access_radio": float(self.cfg.access_radio_drain),
+                    "relay_radio": float(self.cfg.relay_radio_drain),
+                    "return_step": float(self.cfg.returning_step_drain),
+                    "reserve": float(self.cfg.return_safety_margin),
+                    "charge_per_slot": float(self.cfg.charge_rate_per_slot),
+                    "rejoin_threshold": float(self.cfg.rejoin_threshold),
+                },
+            }
+        )
         return meta

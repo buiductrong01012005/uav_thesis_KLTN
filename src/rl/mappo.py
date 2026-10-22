@@ -77,7 +77,13 @@ class MAPPO:
         return Categorical(logits=logits)
 
     @torch.no_grad()
-    def act(self, obs: np.ndarray, state: np.ndarray, action_mask: np.ndarray, deterministic: bool = False):
+    def act(
+        self,
+        obs: np.ndarray,
+        state: np.ndarray,
+        action_mask: np.ndarray,
+        deterministic: bool = False,
+    ):
         obs_t = torch.as_tensor(obs, dtype=torch.float32, device=self.device)
         state_t = torch.as_tensor(state[None, :], dtype=torch.float32, device=self.device)
         mask_t = torch.as_tensor(action_mask, dtype=torch.bool, device=self.device)
@@ -89,7 +95,11 @@ class MAPPO:
             actions = dist.sample()
         logp = dist.log_prob(actions)
         value = self.critic(state_t)[0]
-        return actions.cpu().numpy().astype(np.int64), logp.cpu().numpy().astype(np.float32), float(value.item())
+        return (
+            actions.cpu().numpy().astype(np.int64),
+            logp.cpu().numpy().astype(np.float32),
+            float(value.item()),
+        )
 
     @torch.no_grad()
     def value(self, state: np.ndarray) -> float:
@@ -134,7 +144,9 @@ class MAPPO:
                 o = torch.as_tensor(actor_obs[idx], dtype=torch.float32, device=self.device)
                 m = torch.as_tensor(actor_masks[idx], dtype=torch.bool, device=self.device)
                 a = torch.as_tensor(actor_actions[idx], dtype=torch.int64, device=self.device)
-                old_lp = torch.as_tensor(actor_old_logp[idx], dtype=torch.float32, device=self.device)
+                old_lp = torch.as_tensor(
+                    actor_old_logp[idx], dtype=torch.float32, device=self.device
+                )
                 adv = torch.as_tensor(actor_adv[idx], dtype=torch.float32, device=self.device)
 
                 dist = self._masked_dist(o, m)

@@ -10,6 +10,7 @@ Stage 3: full long-horizon mobile + battery task.
 All stages use the same fixed BS topology, V5 action semantics, request logic,
 network model, observation/state layout, and mean-user-satisfaction reward.
 """
+
 from __future__ import annotations
 
 from dataclasses import dataclass
@@ -105,9 +106,7 @@ def make_curriculum_env(
             # Validation is phase-locked for repeatable cross-checking.  Stage
             # 2/3 training randomizes phase so the learned policy cannot key on
             # a fixed episode clock.
-            randomize_tradeoff_phase=(
-                bool(stage.randomize_train_phase) if training else False
-            ),
+            randomize_tradeoff_phase=(bool(stage.randomize_train_phase) if training else False),
             tradeoff_segment_slots=160,
             relay_request_on_ratio=0.75,
             relay_request_off_ratio=0.90,

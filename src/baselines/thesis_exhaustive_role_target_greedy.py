@@ -10,6 +10,7 @@ geometry-based assisted one-step controller used by the environment.
 This is a privileged small-fleet benchmark: scoring calls the exact simulator
 network model and therefore is not presented as a scalable deployed policy.
 """
+
 from __future__ import annotations
 
 from itertools import product
@@ -29,7 +30,9 @@ class ExhaustiveRoleTargetGreedy:
     def _snapshot(self):
         e = self.env
         return (
-            e.uav_positions.copy(), e.roles.copy(), e.relay_target.copy(),
+            e.uav_positions.copy(),
+            e.roles.copy(),
+            e.relay_target.copy(),
             e.last_assisted_move.copy(),
         )
 
@@ -110,7 +113,8 @@ class ExhaustiveRoleTargetGreedy:
             feasible = True
             for actor in relays:
                 valid_targets = [
-                    target for target in access
+                    target
+                    for target in access
                     if RELAY_BASE + int(target) < mask.shape[1]
                     and bool(mask[int(actor), RELAY_BASE + int(target)])
                 ]
@@ -156,10 +160,12 @@ class ExhaustiveRoleTargetGreedy:
                 # Cartesian move index and target-aware Access action share 0..4.
                 if not bool(mask[i, mv]):
                     continue
-                trial = dict(access_moves); trial[i] = int(mv)
+                trial = dict(access_moves)
+                trial[i] = int(mv)
                 score = self._score(roles, target_map, trial)
-                if score > best_score + 1e-12 or (abs(score-best_score) <= 1e-12 and mv == STAY):
-                    best_score = score; best_move = int(mv)
+                if score > best_score + 1e-12 or (abs(score - best_score) <= 1e-12 and mv == STAY):
+                    best_score = score
+                    best_move = int(mv)
             access_moves[i] = best_move
 
         actions = [STAY] * e.cfg.num_uavs

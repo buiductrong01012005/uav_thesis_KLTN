@@ -181,11 +181,13 @@ class V4ToggleRoleA1Env(V4ToggleRoleEnv):
         out["state"] = self.get_state()
         out["action_mask"] = self.get_action_mask()
         out["episode_meta"] = self._episode_meta()
-        out["episode_meta"].update({
-            "action_design": "6 actions: N/S/E/W/Stay preserve role; ToggleRole switches Access<->Relay",
-            "residual_uav_idx": int(self.residual_uav_idx),
-            "relay_anchor_cell": self._relay_anchor.astype(int).tolist(),
-        })
+        out["episode_meta"].update(
+            {
+                "action_design": "6 actions: N/S/E/W/Stay preserve role; ToggleRole switches Access<->Relay",
+                "residual_uav_idx": int(self.residual_uav_idx),
+                "relay_anchor_cell": self._relay_anchor.astype(int).tolist(),
+            }
+        )
         return out
 
     def reset(self, seed: int | None = None):

@@ -57,9 +57,7 @@ class V4HardRadiusSpatialAgentQNetwork(nn.Module):
 
     def forward(self, obs: torch.Tensor) -> torch.Tensor:
         if obs.ndim != 2 or obs.shape[-1] != self.expected_obs_dim:
-            raise ValueError(
-                f"Expected [B,{self.expected_obs_dim}], got {tuple(obs.shape)}"
-            )
+            raise ValueError(f"Expected [B,{self.expected_obs_dim}], got {tuple(obs.shape)}")
         b = obs.shape[0]
         state = obs[:, : self.state_dim]
         agent_id = obs[:, self.state_dim :]
@@ -67,19 +65,13 @@ class V4HardRadiusSpatialAgentQNetwork(nn.Module):
         # compact-V4 runs accidentally parsed these blocks in reverse order,
         # which fed traffic values into the UAV-coordinate branch and fleet
         # values into the CNN.  Keep this split explicit and unit-tested.
-        demand = state[:, : self.coarse_cells].view(
-            b, 1, self.coarse_size, self.coarse_size
-        )
-        uav = state[:, self.coarse_cells :].view(
-            b, self.n_agents, self.UAV_FEAT
-        )
+        demand = state[:, : self.coarse_cells].view(b, 1, self.coarse_size, self.coarse_size)
+        uav = state[:, self.coarse_cells :].view(b, self.n_agents, self.UAV_FEAT)
 
         # Exact coordinates are normalized to [0,1] in the environment.
         fine = torch.round(uav[:, :, :2] * max(self.grid_size - 1, 1)).long()
         fine = fine.clamp(0, self.grid_size - 1)
-        coarse = torch.div(fine, self.block, rounding_mode="floor").clamp(
-            0, self.coarse_size - 1
-        )
+        coarse = torch.div(fine, self.block, rounding_mode="floor").clamp(0, self.coarse_size - 1)
         flat_idx = coarse[:, :, 0] * self.coarse_size + coarse[:, :, 1]
 
         relay = uav[:, :, 2].clamp(0.0, 1.0)
@@ -90,13 +82,9 @@ class V4HardRadiusSpatialAgentQNetwork(nn.Module):
         relay = active * relay
 
         def scatter(weights: torch.Tensor) -> torch.Tensor:
-            x = torch.zeros(
-                (b, self.coarse_cells), dtype=obs.dtype, device=obs.device
-            )
+            x = torch.zeros((b, self.coarse_cells), dtype=obs.dtype, device=obs.device)
             x.scatter_add_(1, flat_idx, weights)
-            return x.clamp_max_(1.0).view(
-                b, 1, self.coarse_size, self.coarse_size
-            )
+            return x.clamp_max_(1.0).view(b, 1, self.coarse_size, self.coarse_size)
 
         access_map = scatter(access)
         relay_map = scatter(relay)
@@ -106,9 +94,7 @@ class V4HardRadiusSpatialAgentQNetwork(nn.Module):
         self_idx = agent_id.argmax(dim=-1)
         batch_idx = torch.arange(b, device=obs.device)
         self_cell = flat_idx[batch_idx, self_idx]
-        self_flat = torch.zeros(
-            (b, self.coarse_cells), dtype=obs.dtype, device=obs.device
-        )
+        self_flat = torch.zeros((b, self.coarse_cells), dtype=obs.dtype, device=obs.device)
         self_flat.scatter_(1, self_cell.unsqueeze(1), 1.0)
         self_map = self_flat.view(b, 1, self.coarse_size, self.coarse_size)
 

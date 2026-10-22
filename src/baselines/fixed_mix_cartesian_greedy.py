@@ -14,13 +14,16 @@ After choosing the role vector, inherit the one-pass, five-direction coordinate
 movement search used by the exhaustive-role reference. No future lookahead,
 no joint 5**N movement enumeration, and no trainable parameters.
 """
+
 from __future__ import annotations
 
 from itertools import combinations
 
 import numpy as np
 
-from src.baselines.thesis_exhaustive_cartesian_role_greedy import ExhaustiveCartesianRoleGreedy
+from src.baselines.thesis_exhaustive_cartesian_role_greedy import (
+    ExhaustiveCartesianRoleGreedy,
+)
 from src.envs.v0_env import ACCESS, RELAY
 from src.envs.v4_fixed_mobile_battery_env import ACTIVE
 
@@ -28,14 +31,14 @@ from src.envs.v4_fixed_mobile_battery_env import ACTIVE
 class FixedMixCartesianGreedy(ExhaustiveCartesianRoleGreedy):
     """Best role identities for fixed 4A1R or 3A2R, local move optimization."""
 
-    MIXES = {'4A1R': 1, '3A2R': 2}
+    MIXES = {"4A1R": 1, "3A2R": 2}
 
     def __init__(self, env, *, composition: str):
         super().__init__(env)
         if composition not in self.MIXES:
-            raise ValueError(f'Unsupported composition {composition!r}; choose 4A1R or 3A2R')
+            raise ValueError(f"Unsupported composition {composition!r}; choose 4A1R or 3A2R")
         if env.cfg.num_uavs != 5:
-            raise ValueError('Fixed mix is defined for the five-UAV thesis scenario')
+            raise ValueError("Fixed mix is defined for the five-UAV thesis scenario")
         self.composition = composition
         self._last_role_ids = ()
         self._last_effective_role_count = 0
@@ -52,7 +55,7 @@ class FixedMixCartesianGreedy(ExhaustiveCartesianRoleGreedy):
         n_relay = self.effective_relay_target(len(active_ids))
         role_vec = np.full(e.cfg.num_uavs, ACCESS, dtype=np.int64)
         best_roles = role_vec.copy()
-        best_value = -float('inf')
+        best_value = -float("inf")
         chosen = ()
         evaluated = 0
 
@@ -76,11 +79,13 @@ class FixedMixCartesianGreedy(ExhaustiveCartesianRoleGreedy):
         active_ids = np.flatnonzero(self.env.status == ACTIVE)
         n_active = len(active_ids)
         n_relays = int(self._last_effective_role_count)
-        self.last_stats.update({
-            'requested_composition': self.composition,
-            'effective_composition': f'{n_active - n_relays}A{n_relays}R',
-            'selected_relay_ids': list(self._last_role_ids),
-            'privileged_current_ue_network_search': True,
-            'future_rollout': False,
-        })
+        self.last_stats.update(
+            {
+                "requested_composition": self.composition,
+                "effective_composition": f"{n_active - n_relays}A{n_relays}R",
+                "selected_relay_ids": list(self._last_role_ids),
+                "privileged_current_ue_network_search": True,
+                "future_rollout": False,
+            }
+        )
         return actions

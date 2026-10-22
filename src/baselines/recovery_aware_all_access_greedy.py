@@ -7,12 +7,15 @@ This baseline uses privileged exact UE positions/network what-if evaluation,
 just like the other search-based references, and is not an information-matched
 or complexity-matched comparator for QMIX.
 """
+
 from __future__ import annotations
 
 import numpy as np
 
 from src.baselines.recovery_aware_role_greedy import _ServiceRecoveryMixin
-from src.baselines.thesis_exhaustive_cartesian_role_greedy import ExhaustiveCartesianRoleGreedy
+from src.baselines.thesis_exhaustive_cartesian_role_greedy import (
+    ExhaustiveCartesianRoleGreedy,
+)
 from src.envs.v0_env import ACCESS
 from src.envs.v4_fixed_mobile_battery_env import ACTIVE
 
@@ -28,11 +31,13 @@ class RecoveryAwareAllAccessGreedy(_ServiceRecoveryMixin, ExhaustiveCartesianRol
     def act(self, action_mask):
         actions = super().act(action_mask)
         n_active = int(np.sum(self.env.status == ACTIVE))
-        self.last_stats.update({
-            "requested_composition": "5A",
-            "effective_composition": f"{n_active}A0R",
-            "selected_relay_ids": [],
-            "privileged_current_ue_network_search": True,
-            "future_rollout": False,
-        })
+        self.last_stats.update(
+            {
+                "requested_composition": "5A",
+                "effective_composition": f"{n_active}A0R",
+                "selected_relay_ids": [],
+                "privileged_current_ue_network_search": True,
+                "future_rollout": False,
+            }
+        )
         return actions

@@ -148,10 +148,9 @@ class UAVRecoveryEnvV1:
         discovered_ue_count = int(self.discovered_ue_map.sum())
         discovered_ue_ratio = discovered_ue_count / len(self.ue_positions)
 
-        discovery_reward = (
-            self.cfg.discovery_cell_weight * (new_cells / self.known_mask.size)
-            + self.cfg.discovery_ue_weight * (new_ues / len(self.ue_positions))
-        )
+        discovery_reward = self.cfg.discovery_cell_weight * (
+            new_cells / self.known_mask.size
+        ) + self.cfg.discovery_ue_weight * (new_ues / len(self.ue_positions))
         reward = float(served_ratio + discovery_reward)
 
         self.t += 1
@@ -280,7 +279,6 @@ class UAVRecoveryEnvV1:
         if role not in (SCOUT, ACCESS, RELAY):
             raise ValueError("Invalid V1 role.")
         return move_idx * 3 + role
-
 
     def _scout_footprint(self, center: np.ndarray) -> list[tuple[int, int]]:
         """Cells revealed by a Scout at ``center``.

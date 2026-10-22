@@ -40,10 +40,10 @@ MOVE_NAMES = ["North", "South", "East", "West", "Stay"]
 MOVE_DELTAS = np.asarray(
     [
         [-1, 0],  # North
-        [1, 0],   # South
-        [0, 1],   # East
+        [1, 0],  # South
+        [0, 1],  # East
         [0, -1],  # West
-        [0, 0],   # Stay
+        [0, 0],  # Stay
     ],
     dtype=np.int64,
 )
@@ -103,9 +103,7 @@ class UAVRecoveryEnvV0:
 
         self.ue_positions = np.asarray(self.cfg.ue_positions, dtype=np.int64)
         self.bs_position = np.asarray(self.cfg.surviving_bs, dtype=np.int64)
-        self.start_positions = np.asarray(
-            self.cfg.uav_start_positions, dtype=np.int64
-        )
+        self.start_positions = np.asarray(self.cfg.uav_start_positions, dtype=np.int64)
 
         self.t = 0
         self.uav_positions = self.start_positions.copy()
@@ -224,14 +222,8 @@ class UAVRecoveryEnvV0:
             for relay_id in relay_ids:
                 relay_pos = self.uav_positions[relay_id]
 
-                access_to_relay = (
-                    self._distance(access_pos, relay_pos)
-                    <= self.cfg.backhaul_range
-                )
-                relay_to_bs = (
-                    self._distance(relay_pos, self.bs_position)
-                    <= self.cfg.backhaul_range
-                )
+                access_to_relay = self._distance(access_pos, relay_pos) <= self.cfg.backhaul_range
+                relay_to_bs = self._distance(relay_pos, self.bs_position) <= self.cfg.backhaul_range
 
                 if access_to_relay and relay_to_bs:
                     valid_access[access_id] = True
@@ -253,10 +245,7 @@ class UAVRecoveryEnvV0:
 
         for ue_id, ue_pos in enumerate(self.ue_positions):
             for access_id in valid_access_ids:
-                if (
-                    self._distance(ue_pos, self.uav_positions[access_id])
-                    <= self.cfg.access_range
-                ):
+                if self._distance(ue_pos, self.uav_positions[access_id]) <= self.cfg.access_range:
                     served[ue_id] = True
                     break
 
@@ -288,9 +277,7 @@ class UAVRecoveryEnvV0:
             else:
                 features.extend([0.0, 1.0])
 
-        ue_map = np.zeros(
-            (self.cfg.grid_size, self.cfg.grid_size), dtype=np.float32
-        )
+        ue_map = np.zeros((self.cfg.grid_size, self.cfg.grid_size), dtype=np.float32)
         for pos in self.ue_positions:
             ue_map[tuple(pos)] += 1.0
 
@@ -367,10 +354,7 @@ class UAVRecoveryEnvV0:
         return move_idx * 2 + role
 
     def _inside_grid(self, pos: np.ndarray) -> bool:
-        return bool(
-            np.all(pos >= 0)
-            and np.all(pos < self.cfg.grid_size)
-        )
+        return bool(np.all(pos >= 0) and np.all(pos < self.cfg.grid_size))
 
     @staticmethod
     def _distance(a: Iterable[int], b: Iterable[int]) -> float:
@@ -398,9 +382,7 @@ def run_manual_sanity_checks():
     env = UAVRecoveryEnvV0()
     env.reset()
 
-    env.uav_positions = np.asarray(
-        [(3, 1), (4, 2), (2, 3)], dtype=np.int64
-    )
+    env.uav_positions = np.asarray([(3, 1), (4, 2), (2, 3)], dtype=np.int64)
 
     cases = {
         "AAA": [ACCESS, ACCESS, ACCESS],

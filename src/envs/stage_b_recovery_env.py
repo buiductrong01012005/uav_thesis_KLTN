@@ -44,16 +44,18 @@ class StageBRecoveryEnv(UAVRecoveryEnvV0):
             raise ValueError("total_true_ues cannot be smaller than discovered UE count")
 
         self.stage_b_cfg = config
-        super().__init__(V0Config(
-            grid_size=config.grid_size,
-            num_uavs=config.num_uavs,
-            horizon=config.horizon,
-            access_range=config.access_range,
-            backhaul_range=config.backhaul_range,
-            surviving_bs=config.surviving_bs,
-            ue_positions=config.discovered_ue_positions,
-            uav_start_positions=config.uav_start_positions,
-        ))
+        super().__init__(
+            V0Config(
+                grid_size=config.grid_size,
+                num_uavs=config.num_uavs,
+                horizon=config.horizon,
+                access_range=config.access_range,
+                backhaul_range=config.backhaul_range,
+                surviving_bs=config.surviving_bs,
+                ue_positions=config.discovered_ue_positions,
+                uav_start_positions=config.uav_start_positions,
+            )
+        )
 
     @property
     def discovered_ue_count(self) -> int:
@@ -66,12 +68,8 @@ class StageBRecoveryEnv(UAVRecoveryEnvV0):
     def step(self, actions: Sequence[int]):
         out = super().step(actions)
         served_count = out["info"]["served_count"]
-        out["info"]["served_discovered_ratio"] = float(
-            served_count / self.discovered_ue_count
-        )
-        out["info"]["served_total_ratio"] = float(
-            served_count / self.stage_b_cfg.total_true_ues
-        )
+        out["info"]["served_discovered_ratio"] = float(served_count / self.discovered_ue_count)
+        out["info"]["served_total_ratio"] = float(served_count / self.stage_b_cfg.total_true_ues)
         out["info"]["information_ceiling"] = float(self.information_ceiling)
         # `reward` from V0 is already served_count / discovered_ue_count.
         return out

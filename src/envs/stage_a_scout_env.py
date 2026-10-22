@@ -128,15 +128,19 @@ class StageAScoutEnv:
             "new_ues": int(new_ues),
             "discovery_ratio": float(self.known_mask.mean()),
             "discovered_ue_count": int(self.discovered_ue_map.sum()),
-            "discovered_ue_ratio": float(self.discovered_ue_map.sum() / max(len(self.ue_positions), 1)),
+            "discovered_ue_ratio": float(
+                self.discovered_ue_map.sum() / max(len(self.ue_positions), 1)
+            ),
         }
         out = self._output()
-        out.update({
-            "reward": reward,
-            "terminated": terminated,
-            "truncated": truncated,
-            "info": info,
-        })
+        out.update(
+            {
+                "reward": reward,
+                "terminated": terminated,
+                "truncated": truncated,
+                "info": info,
+            }
+        )
         return out
 
     def get_state(self) -> np.ndarray:

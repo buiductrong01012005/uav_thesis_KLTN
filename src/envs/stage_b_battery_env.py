@@ -197,4 +197,5 @@ class StageBBatteryEnv(StageBRecoveryEnv):
     def _move_delta(move_idx: int) -> np.ndarray:
         # Local import avoided only to keep this subclass dependency explicit.
         from src.envs.v0_env import MOVE_DELTAS
+
         return MOVE_DELTAS[move_idx]

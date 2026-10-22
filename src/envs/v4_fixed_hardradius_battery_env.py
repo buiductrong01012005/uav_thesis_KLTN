@@ -17,6 +17,7 @@ Observation is also compressed for the fixed-map thesis setting:
 - fixed BS/station maps are not repeated every time step because their
   locations are fixed and known a priori.
 """
+
 from __future__ import annotations
 
 from dataclasses import dataclass
@@ -24,17 +25,21 @@ import numpy as np
 
 from src.envs.v0_env import ACCESS, RELAY
 from src.envs.v4_fixed_mobile_battery_env import (
-    ACTIVE, RETURNING, CHARGING, V4FixedMobileBatteryConfig, V4FixedMobileBatteryEnv,
+    ACTIVE,
+    RETURNING,
+    CHARGING,
+    V4FixedMobileBatteryConfig,
+    V4FixedMobileBatteryEnv,
 )
 
 
 @dataclass
 class V4FixedHardRadiusConfig(V4FixedMobileBatteryConfig):
     # Hard-radius communication abstraction (grid-cell units, 1 cell = 50 m).
-    access_radius_cells: float = 4.0          # ~200 m UE coverage
-    direct_bh_radius_cells: float = 5.0       # ~350 m Access -> surviving BS
-    access_relay_radius_cells: float = 5.0    # ~300 m Access -> Relay
-    relay_bs_radius_cells: float = 5.0        # ~350 m Relay -> surviving BS
+    access_radius_cells: float = 4.0  # ~200 m UE coverage
+    direct_bh_radius_cells: float = 5.0  # ~350 m Access -> surviving BS
+    access_relay_radius_cells: float = 5.0  # ~300 m Access -> Relay
+    relay_bs_radius_cells: float = 5.0  # ~350 m Relay -> surviving BS
 
     # Finite capacities, expressed as equivalent fully-served UEs.  Access
     # association is still additionally capped by max_ues_per_access.
@@ -77,7 +82,9 @@ class V4FixedHardRadiusEnv(V4FixedMobileBatteryEnv):
         feasible = d2 <= (self.cfg.access_radius_cells + 1e-9) ** 2
         feasible_count = feasible.sum(axis=1)
         min_d2 = np.where(feasible, d2, np.inf).min(axis=1)
-        ue_order = np.lexsort((np.arange(M), min_d2, np.where(feasible_count > 0, feasible_count, 10**9)))
+        ue_order = np.lexsort(
+            (np.arange(M), min_d2, np.where(feasible_count > 0, feasible_count, 10**9))
+        )
 
         assoc: dict[int, list[int]] = {int(a): [] for a in access_ids}
         loads = np.zeros(len(access_ids), dtype=int)
@@ -127,7 +134,10 @@ class V4FixedHardRadiusEnv(V4FixedMobileBatteryEnv):
             cand = []
             for rj, rid0 in enumerate(relay_ids):
                 rid = int(rid0)
-                if relay_bs_ok[rid] and ar_d2[ai, rj] <= (self.cfg.access_relay_radius_cells + 1e-9) ** 2:
+                if (
+                    relay_bs_ok[rid]
+                    and ar_d2[ai, rj] <= (self.cfg.access_relay_radius_cells + 1e-9) ** 2
+                ):
                     cand.append((float(ar_d2[ai, rj]), rid))
             if cand:
                 cand.sort(key=lambda x: (x[0], x[1]))
@@ -184,11 +194,13 @@ class V4FixedHardRadiusEnv(V4FixedMobileBatteryEnv):
             role_scalar = float(self.roles[i] == RELAY) if self.status[i] == ACTIVE else 0.0
             feats.append(role_scalar)
             feats.append(float(self.battery[i] / self.cfg.max_battery))
-            feats.extend([
-                float(self.status[i] == ACTIVE),
-                float(self.status[i] == RETURNING),
-                float(self.status[i] == CHARGING),
-            ])
+            feats.extend(
+                [
+                    float(self.status[i] == ACTIVE),
+                    float(self.status[i] == RETURNING),
+                    float(self.status[i] == CHARGING),
+                ]
+            )
         feats.extend(self._coarse_demand_map().ravel().tolist())
         return np.asarray(feats, dtype=np.float32)
 

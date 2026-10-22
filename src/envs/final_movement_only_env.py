@@ -5,6 +5,7 @@ but remove RelayTo from the policy action space entirely.  This is a genuinely
 separate 5-action Spatial-QMIX baseline, not a 10-action V9 policy with relay
 actions masked at evaluation time.
 """
+
 from __future__ import annotations
 
 import numpy as np
@@ -42,11 +43,13 @@ class _MovementOnlyMixin:
 
     def _episode_meta(self) -> dict:
         meta = super()._episode_meta()
-        meta.update({
-            "final_baseline": "independent_movement_only_spatial_qmix",
-            "policy_actions": "N/S/E/W/Stay only",
-            "relay_actions_available": False,
-        })
+        meta.update(
+            {
+                "final_baseline": "independent_movement_only_spatial_qmix",
+                "policy_actions": "N/S/E/W/Stay only",
+                "relay_actions_available": False,
+            }
+        )
         return meta
 
 

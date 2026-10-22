@@ -192,8 +192,7 @@ class V5RelayRequestEnv(V4FinalFixedMapEnv):
                 continue
             ratio = float(direct[i] / max(load, 1e-9))
             threshold = (
-                self.cfg.relay_request_off_ratio if prev[i]
-                else self.cfg.relay_request_on_ratio
+                self.cfg.relay_request_off_ratio if prev[i] else self.cfg.relay_request_on_ratio
             )
             needed[i] = ratio < threshold
 
@@ -263,7 +262,8 @@ class V5RelayRequestEnv(V4FinalFixedMapEnv):
         # Prefer a severe and heavily-loaded request, not simply the lowest id.
         max_load = self.cfg.max_ues_per_access * self.cfg.ue_demand_mbps
         scores = {
-            t: float(self.request_deficit[t]) * min(1.0, float(self.request_load_mbps[t]) / max_load)
+            t: float(self.request_deficit[t])
+            * min(1.0, float(self.request_load_mbps[t]) / max_load)
             for t in candidates
         }
         target = max(candidates, key=lambda t: (scores[t], -t))
@@ -340,9 +340,7 @@ class V5RelayRequestEnv(V4FinalFixedMapEnv):
         rejected_claims: list[tuple[int, int]] = []
         for actor, target in proposals:
             structural_conflict = (
-                actor in used_targets
-                or target in used_targets
-                or target in used_actors
+                actor in used_targets or target in used_targets or target in used_actors
             )
             if structural_conflict:
                 rejected_claims.append((actor, target))
@@ -401,19 +399,21 @@ class V5RelayRequestEnv(V4FinalFixedMapEnv):
         self._refresh_request_state()
 
         out = self._refresh_output(out)
-        out["info"].update({
-            "relay_needed": self.relay_needed.astype(int).tolist(),
-            "request_open": self.request_open.astype(int).tolist(),
-            "request_load_mbps": self.request_load_mbps.astype(float).tolist(),
-            "request_direct_bh_mbps": self.request_direct_bh_mbps.astype(float).tolist(),
-            "request_deficit": self.request_deficit.astype(float).tolist(),
-            "relay_target": self.relay_target.astype(int).tolist(),
-            "relay_assignment_age": self.relay_assignment_age.astype(int).tolist(),
-            "accepted_relay_targets_this_slot": [[a, t] for a, t in accepted],
-            "rejected_relay_claims_this_slot": [[a, t] for a, t in rejected_claims],
-            "relay_claim_conflicts_this_slot": int(claim_conflicts),
-            "released_relay_ids_this_slot": released,
-        })
+        out["info"].update(
+            {
+                "relay_needed": self.relay_needed.astype(int).tolist(),
+                "request_open": self.request_open.astype(int).tolist(),
+                "request_load_mbps": self.request_load_mbps.astype(float).tolist(),
+                "request_direct_bh_mbps": self.request_direct_bh_mbps.astype(float).tolist(),
+                "request_deficit": self.request_deficit.astype(float).tolist(),
+                "relay_target": self.relay_target.astype(int).tolist(),
+                "relay_assignment_age": self.relay_assignment_age.astype(int).tolist(),
+                "accepted_relay_targets_this_slot": [[a, t] for a, t in accepted],
+                "rejected_relay_claims_this_slot": [[a, t] for a, t in rejected_claims],
+                "relay_claim_conflicts_this_slot": int(claim_conflicts),
+                "released_relay_ids_this_slot": released,
+            }
+        )
         return out
 
     def get_action_mask(self) -> np.ndarray:
@@ -453,11 +453,13 @@ class V5RelayRequestEnv(V4FinalFixedMapEnv):
             feats.extend((self.uav_positions[i] / gden).astype(np.float32).tolist())
             feats.append(float(self.status[i] == ACTIVE and self.roles[i] == RELAY))
             feats.append(float(self.battery[i] / self.cfg.max_battery))
-            feats.extend([
-                float(self.status[i] == ACTIVE),
-                float(self.status[i] == 1),  # RETURNING
-                float(self.status[i] == 2),  # CHARGING
-            ])
+            feats.extend(
+                [
+                    float(self.status[i] == ACTIVE),
+                    float(self.status[i] == 1),  # RETURNING
+                    float(self.status[i] == 2),  # CHARGING
+                ]
+            )
             feats.append(float(self.relay_needed[i]))
             feats.append(float(self.request_open[i]))
             feats.append(float(np.clip(self.request_load_mbps[i] / max_load, 0.0, 1.0)))
@@ -496,20 +498,21 @@ class V5RelayRequestEnv(V4FinalFixedMapEnv):
 
     def _episode_meta(self) -> dict:
         meta = super()._episode_meta()
-        meta.update({
-            "control_version": "V5_relay_request_persistent_assignment",
-            "n_actions": int(self.n_actions),
-            "action_design": (
-                "0-4 movement preserve role; 5-8 AcceptRelay(other UAV target); "
-                "9 ReleaseRelay"
-            ),
-            "relay_request_on_ratio": float(self.cfg.relay_request_on_ratio),
-            "relay_request_off_ratio": float(self.cfg.relay_request_off_ratio),
-            "relay_request_min_load_mbps": float(self.cfg.relay_request_min_load_mbps),
-            "relay_min_dwell_slots": int(self.cfg.relay_min_dwell_slots),
-            "relay_claim_conflict_rule": "deterministic joint matching of simultaneous AcceptRelay intents; no duplicate primary target and no Relay-to-Relay target chain",
-            "reward": "mean user satisfaction only; unchanged",
-        })
+        meta.update(
+            {
+                "control_version": "V5_relay_request_persistent_assignment",
+                "n_actions": int(self.n_actions),
+                "action_design": (
+                    "0-4 movement preserve role; 5-8 AcceptRelay(other UAV target); 9 ReleaseRelay"
+                ),
+                "relay_request_on_ratio": float(self.cfg.relay_request_on_ratio),
+                "relay_request_off_ratio": float(self.cfg.relay_request_off_ratio),
+                "relay_request_min_load_mbps": float(self.cfg.relay_request_min_load_mbps),
+                "relay_min_dwell_slots": int(self.cfg.relay_min_dwell_slots),
+                "relay_claim_conflict_rule": "deterministic joint matching of simultaneous AcceptRelay intents; no duplicate primary target and no Relay-to-Relay target chain",
+                "reward": "mean user satisfaction only; unchanged",
+            }
+        )
         return meta
 
 
@@ -577,12 +580,14 @@ class V5RelayRequestA1Env(V5RelayRequestEnv):
 
     def _finalize_scenario_reset(self, out: dict) -> dict:
         out = self._refresh_output(out)
-        out["episode_meta"].update({
-            "residual_uav_idx": int(self.residual_uav_idx),
-            "relay_anchor_cell": self._relay_anchor.astype(int).tolist(),
-            "initial_relay_target": int(self.relay_target[self.residual_uav_idx]),
-            "identity_position_randomization": True,
-        })
+        out["episode_meta"].update(
+            {
+                "residual_uav_idx": int(self.residual_uav_idx),
+                "relay_anchor_cell": self._relay_anchor.astype(int).tolist(),
+                "initial_relay_target": int(self.relay_target[self.residual_uav_idx]),
+                "identity_position_randomization": True,
+            }
+        )
         return out
 
     def reset(self, seed: int | None = None):

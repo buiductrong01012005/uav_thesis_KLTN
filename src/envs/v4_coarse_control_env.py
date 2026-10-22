@@ -31,7 +31,11 @@ class V4CoarseControlConfig(V4FinalFixedMapConfig):
     # Distinct starting points on the 5x5 control lattice.  Coordinates remain
     # fine-grid indices, chosen near the affected BS3 region.
     uav_start_cells: tuple[tuple[int, int], ...] = (
-        (9, 1), (9, 5), (13, 1), (5, 5), (13, 5)
+        (9, 1),
+        (9, 5),
+        (13, 1),
+        (5, 5),
+        (13, 5),
     )
 
     # Energy parameters below are still defined per 5 s base interval in the
@@ -137,10 +141,16 @@ class V4CoarseControlEnv(V4FinalFixedMapEnv):
                 drain = self.cfg.hover_drain
                 if moved_active[i]:
                     drain += self.cfg.move_extra_drain
-                drain += self.cfg.access_radio_drain if self.roles[i] == ACCESS else self.cfg.relay_radio_drain
+                drain += (
+                    self.cfg.access_radio_drain
+                    if self.roles[i] == ACCESS
+                    else self.cfg.relay_radio_drain
+                )
                 self.battery[i] = max(0.0, float(self.battery[i] - es * drain))
             elif status_before[i] == RETURNING:
-                self.battery[i] = max(0.0, float(self.battery[i] - es * self.cfg.returning_step_drain))
+                self.battery[i] = max(
+                    0.0, float(self.battery[i] - es * self.cfg.returning_step_drain)
+                )
             elif status_before[i] == CHARGING:
                 self.battery[i] = min(
                     self.cfg.max_battery,
@@ -175,8 +185,12 @@ class V4CoarseControlEnv(V4FinalFixedMapEnv):
             "t": self.t,
             "utility": utility,
             "mean_rate_mbps": float(np.mean(net["ue_rate_mbps"])),
-            "sum_served_mbps": float(np.sum(np.minimum(net["ue_rate_mbps"], self.cfg.ue_demand_mbps))),
-            "satisfied_fraction": float(np.mean(net["ue_rate_mbps"] >= self.cfg.ue_demand_mbps - 1e-9)),
+            "sum_served_mbps": float(
+                np.sum(np.minimum(net["ue_rate_mbps"], self.cfg.ue_demand_mbps))
+            ),
+            "satisfied_fraction": float(
+                np.mean(net["ue_rate_mbps"] >= self.cfg.ue_demand_mbps - 1e-9)
+            ),
             "num_access": int(np.sum((self.roles == ACCESS) & (self.status == ACTIVE))),
             "num_relay": int(np.sum((self.roles == RELAY) & (self.status == ACTIVE))),
             "active_count": int(np.sum(self.status == ACTIVE)),
@@ -190,7 +204,9 @@ class V4CoarseControlEnv(V4FinalFixedMapEnv):
             "routes": net["routes"],
             "access_loads": net["access_loads"],
             "backhaul_caps_mbps": net["backhaul_caps_mbps"],
-            "role_switches_this_slot": int(np.sum((roles_before != self.roles) & (status_before == ACTIVE))),
+            "role_switches_this_slot": int(
+                np.sum((roles_before != self.roles) & (status_before == ACTIVE))
+            ),
             "control_stride_cells": int(self.cfg.control_stride_cells),
             "control_interval_s": float(self.cfg.slot_s),
         }

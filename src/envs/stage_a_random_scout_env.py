@@ -51,7 +51,7 @@ class RandomizedStageAScoutEnv(StageAScoutEnv):
 
     def __init__(self, config: RandomStageAConfig | None = None):
         self.random_cfg = config or RandomStageAConfig()
-        if self.random_cfg.num_ues > self.random_cfg.grid_size ** 2:
+        if self.random_cfg.num_ues > self.random_cfg.grid_size**2:
             raise ValueError("num_ues cannot exceed number of grid cells")
         if self.random_cfg.num_uavs != len(self.random_cfg.fixed_uav_start_positions):
             raise ValueError("num_uavs must match fixed_uav_start_positions length")
@@ -88,7 +88,7 @@ class RandomizedStageAScoutEnv(StageAScoutEnv):
 
         cells = np.asarray([(r, c) for r in range(g) for c in range(g)], dtype=np.int64)
         dist2 = np.sum((cells - self.hotspot_center[None, :]) ** 2, axis=1)
-        sigma2 = max(self.random_cfg.hotspot_sigma ** 2, 1e-6)
+        sigma2 = max(self.random_cfg.hotspot_sigma**2, 1e-6)
         weights = np.exp(-dist2 / (2.0 * sigma2)) + 1e-9
         weights /= weights.sum()
 
@@ -115,6 +115,7 @@ class RandomizedStageAScoutEnv(StageAScoutEnv):
         # StageAScoutEnv.reset() uses these arrays and clears them in-place.
         self.known_mask = np.zeros_like(self.true_ue_map, dtype=bool)
         self.discovered_ue_map = np.zeros_like(self.true_ue_map, dtype=np.int64)
+
 
 class RandomizedStageACoverageOnlyEnv(RandomizedStageAScoutEnv):
     """Randomized Scout environment with a minimal exploration observation.

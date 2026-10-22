@@ -12,8 +12,10 @@ class RoleQNetwork(nn.Module):
     def __init__(self, state_dim: int, n_actions: int = 32, hidden_dim: int = 128):
         super().__init__()
         self.net = nn.Sequential(
-            nn.Linear(state_dim, hidden_dim), nn.ReLU(),
-            nn.Linear(hidden_dim, hidden_dim), nn.ReLU(),
+            nn.Linear(state_dim, hidden_dim),
+            nn.ReLU(),
+            nn.Linear(hidden_dim, hidden_dim),
+            nn.ReLU(),
             nn.Linear(hidden_dim, n_actions),
         )
 
@@ -119,14 +121,23 @@ class JointRoleDQN:
         self.q.load_state_dict(ck["q"])
         self.target.load_state_dict(self.q.state_dict())
 
+
 class SpatialRoleQNetwork(nn.Module):
     """Light spatial global-state encoder for the 5-UAV role controller."""
+
     UAV_FEAT = 8
 
-    def __init__(self, state_dim: int, n_agents: int = 5, grid_size: int = 20,
-                 n_actions: int = 32, hidden_dim: int = 96):
+    def __init__(
+        self,
+        state_dim: int,
+        n_agents: int = 5,
+        grid_size: int = 20,
+        n_actions: int = 32,
+        hidden_dim: int = 96,
+    ):
         super().__init__()
         import torch.nn.functional as F  # noqa: F401 - documented dependency for forward
+
         self.n_agents = n_agents
         self.grid_size = grid_size
         self.n_actions = n_actions
@@ -136,55 +147,77 @@ class SpatialRoleQNetwork(nn.Module):
         if state_dim != self.expected_state_dim:
             raise ValueError(f"Expected V4 state_dim={self.expected_state_dim}, got {state_dim}")
         self.encoder = nn.Sequential(
-            nn.Conv2d(8, 16, kernel_size=3, padding=1), nn.ReLU(),
-            nn.Conv2d(16, 24, kernel_size=3, padding=1), nn.ReLU(),
+            nn.Conv2d(8, 16, kernel_size=3, padding=1),
+            nn.ReLU(),
+            nn.Conv2d(16, 24, kernel_size=3, padding=1),
+            nn.ReLU(),
         )
         scalar_dim = n_agents * self.UAV_FEAT  # exact UAV state + coarse maps
         self.head = nn.Sequential(
-            nn.Linear(24 * 5 * 5 + scalar_dim, hidden_dim), nn.ReLU(),
+            nn.Linear(24 * 5 * 5 + scalar_dim, hidden_dim),
+            nn.ReLU(),
             nn.Linear(hidden_dim, n_actions),
         )
 
     def forward(self, state):
         import torch.nn.functional as F
+
         if state.ndim != 2 or state.shape[-1] != self.expected_state_dim:
             raise ValueError("SpatialRoleQNetwork state shape mismatch")
-        b = state.shape[0]; g = self.grid_size
-        uav = state[:, :self.uav_block].view(b, self.n_agents, self.UAV_FEAT)
+        b = state.shape[0]
+        g = self.grid_size
+        uav = state[:, : self.uav_block].view(b, self.n_agents, self.UAV_FEAT)
         p = self.uav_block
-        demand = state[:, p:p+self.cells].view(b,1,g,g); p += self.cells
-        surviving = state[:, p:p+self.cells].view(b,1,g,g); p += self.cells
-        failed = state[:, p:p+self.cells].view(b,1,g,g); p += self.cells
-        stations = state[:, p:p+self.cells].view(b,1,g,g)
+        demand = state[:, p : p + self.cells].view(b, 1, g, g)
+        p += self.cells
+        surviving = state[:, p : p + self.cells].view(b, 1, g, g)
+        p += self.cells
+        failed = state[:, p : p + self.cells].view(b, 1, g, g)
+        p += self.cells
+        stations = state[:, p : p + self.cells].view(b, 1, g, g)
 
-        coords = torch.round(uav[:, :, :2] * max(g-1,1)).long().clamp(0,g-1)
-        idx = coords[:,:,0]*g + coords[:,:,1]
+        coords = torch.round(uav[:, :, :2] * max(g - 1, 1)).long().clamp(0, g - 1)
+        idx = coords[:, :, 0] * g + coords[:, :, 1]
+
         def scatter(weights):
-            x = torch.zeros((b,g*g), dtype=state.dtype, device=state.device)
+            x = torch.zeros((b, g * g), dtype=state.dtype, device=state.device)
             x.scatter_add_(1, idx, weights)
-            return x.clamp_max_(1.0).view(b,1,g,g)
-        access = scatter((uav[:,:,2] > .5).to(state.dtype))
-        relay = scatter((uav[:,:,3] > .5).to(state.dtype))
-        returning = scatter((uav[:,:,6] > .5).to(state.dtype))
-        charging = scatter((uav[:,:,7] > .5).to(state.dtype))
+            return x.clamp_max_(1.0).view(b, 1, g, g)
+
+        access = scatter((uav[:, :, 2] > 0.5).to(state.dtype))
+        relay = scatter((uav[:, :, 3] > 0.5).to(state.dtype))
+        returning = scatter((uav[:, :, 6] > 0.5).to(state.dtype))
+        charging = scatter((uav[:, :, 7] > 0.5).to(state.dtype))
 
         demand_p = F.avg_pool2d(demand, 4, 4) * 16.0
         entities = [surviving, failed, stations, access, relay, returning, charging]
         ent_p = [F.max_pool2d(x, 4, 4) for x in entities]
         maps = torch.cat([demand_p, *ent_p], dim=1)
         z = self.encoder(maps).flatten(1)
-        scalars = uav.reshape(b,-1)
+        scalars = uav.reshape(b, -1)
         return self.head(torch.cat([z, scalars], dim=1))
 
 
 class SpatialJointRoleDQN(JointRoleDQN):
-    def __init__(self, state_dim: int, n_actions: int = 32, n_agents: int = 5,
-                 grid_size: int = 20, lr: float = 3e-4, gamma: float = 0.99,
-                 hidden_dim: int = 96, device: str = "cpu"):
+    def __init__(
+        self,
+        state_dim: int,
+        n_actions: int = 32,
+        n_agents: int = 5,
+        grid_size: int = 20,
+        lr: float = 3e-4,
+        gamma: float = 0.99,
+        hidden_dim: int = 96,
+        device: str = "cpu",
+    ):
         self.n_actions = int(n_actions)
         self.gamma = float(gamma)
         self.device = torch.device(device)
-        self.q = SpatialRoleQNetwork(state_dim, n_agents, grid_size, n_actions, hidden_dim).to(self.device)
-        self.target = SpatialRoleQNetwork(state_dim, n_agents, grid_size, n_actions, hidden_dim).to(self.device)
+        self.q = SpatialRoleQNetwork(state_dim, n_agents, grid_size, n_actions, hidden_dim).to(
+            self.device
+        )
+        self.target = SpatialRoleQNetwork(state_dim, n_agents, grid_size, n_actions, hidden_dim).to(
+            self.device
+        )
         self.target.load_state_dict(self.q.state_dict())
         self.optim = torch.optim.Adam(self.q.parameters(), lr=lr)

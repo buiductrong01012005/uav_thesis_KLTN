@@ -31,9 +31,7 @@ class GreedyScriptedPolicy:
 
         actions = []
         for i in range(self.env.cfg.num_uavs):
-            move_idx = self._move_toward(
-                self.env.uav_positions[i], self.targets[i], action_mask[i]
-            )
+            move_idx = self._move_toward(self.env.uav_positions[i], self.targets[i], action_mask[i])
             role = int(self.target_roles[i])
             actions.append(self.env.encode_action(move_idx, role))
         return actions
@@ -75,7 +73,9 @@ class GreedyScriptedPolicy:
         for perm in permutations(range(3)):
             dist = 0
             for uav_id, target_id in enumerate(perm):
-                dist += int(np.abs(self.env.uav_positions[uav_id] - target_positions[target_id]).sum())
+                dist += int(
+                    np.abs(self.env.uav_positions[uav_id] - target_positions[target_id]).sum()
+                )
             if best_dist is None or dist < best_dist:
                 best_dist = dist
                 best_perm = perm

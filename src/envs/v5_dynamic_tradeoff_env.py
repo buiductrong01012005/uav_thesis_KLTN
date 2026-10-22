@@ -19,6 +19,7 @@ initial battery phases and UAV identities over the same five start cells are
 shuffled every episode.  Relay creation/release is therefore entirely a V5 RL
 decision rather than an initialization rule.
 """
+
 from __future__ import annotations
 
 from dataclasses import dataclass
@@ -48,10 +49,14 @@ class V5DynamicTradeoffConfig(V5RelayRequestConfig):
     # Every straight segment between corresponding group centers stays inside
     # the canonical failed-BS Voronoi region.
     direct_friendly_centers: tuple[tuple[float, float], ...] = (
-        (11.0, 6.0), (12.0, 5.0), (10.0, 5.0)
+        (11.0, 6.0),
+        (12.0, 5.0),
+        (10.0, 5.0),
     )
     relay_stressed_centers: tuple[tuple[float, float], ...] = (
-        (8.0, 0.0), (10.0, 0.0), (12.0, 1.0)
+        (8.0, 0.0),
+        (10.0, 0.0),
+        (12.0, 1.0),
     )
     tradeoff_segment_slots: int = 160
     randomize_tradeoff_phase: bool = True
@@ -64,13 +69,21 @@ class V5DynamicTradeoffEnv(V5RelayRequestEnv):
     def __init__(self, config: V5DynamicTradeoffConfig | None = None):
         super().__init__(config or V5DynamicTradeoffConfig())
         self.cfg: V5DynamicTradeoffConfig
-        if not 0.0 < self.cfg.initial_battery_min <= self.cfg.initial_battery_max <= self.cfg.max_battery:
+        if (
+            not 0.0
+            < self.cfg.initial_battery_min
+            <= self.cfg.initial_battery_max
+            <= self.cfg.max_battery
+        ):
             raise ValueError("initial battery range must satisfy 0 < min <= max <= max_battery")
         if self.cfg.tradeoff_segment_slots < 1:
             raise ValueError("tradeoff_segment_slots must be >= 1")
         direct = np.asarray(self.cfg.direct_friendly_centers, dtype=np.float64)
         relay = np.asarray(self.cfg.relay_stressed_centers, dtype=np.float64)
-        if direct.shape != (self.cfg.num_hotspots, 2) or relay.shape != (self.cfg.num_hotspots, 2):
+        if direct.shape != (self.cfg.num_hotspots, 2) or relay.shape != (
+            self.cfg.num_hotspots,
+            2,
+        ):
             raise ValueError("tradeoff center sets must have shape (num_hotspots, 2)")
         for p in np.vstack([direct, relay]):
             if not self._center_is_valid_floor(p):
@@ -154,25 +167,28 @@ class V5DynamicTradeoffEnv(V5RelayRequestEnv):
 
         self._refresh_request_state()
         out = self._refresh_output(out)
-        out["episode_meta"].update({
-            "profile": "v5_dynamic_tradeoff_single_topology",
-            "all_access_initially": True,
-            "ue_mobility": bool(self.cfg.enable_ue_mobility),
-            "battery_cycle": bool(self.cfg.enable_battery_cycle),
-            "initial_identity_permutation": self.initial_identity_permutation.astype(int).tolist(),
-            "initial_battery": self.battery.astype(float).tolist(),
-            "initial_battery_range": [
-                float(self.cfg.initial_battery_min),
-                float(self.cfg.initial_battery_max),
-            ],
-            "tradeoff_waypoints_enabled": bool(self.cfg.use_tradeoff_waypoint_mobility),
-            "tradeoff_phase_offset": int(self.tradeoff_phase_offset),
-            "tradeoff_segment_slots": int(self.cfg.tradeoff_segment_slots),
-            "direct_friendly_centers": self._direct_centers.astype(float).tolist(),
-            "relay_stressed_centers": self._relay_centers.astype(float).tolist(),
-        })
+        out["episode_meta"].update(
+            {
+                "profile": "v5_dynamic_tradeoff_single_topology",
+                "all_access_initially": True,
+                "ue_mobility": bool(self.cfg.enable_ue_mobility),
+                "battery_cycle": bool(self.cfg.enable_battery_cycle),
+                "initial_identity_permutation": self.initial_identity_permutation.astype(
+                    int
+                ).tolist(),
+                "initial_battery": self.battery.astype(float).tolist(),
+                "initial_battery_range": [
+                    float(self.cfg.initial_battery_min),
+                    float(self.cfg.initial_battery_max),
+                ],
+                "tradeoff_waypoints_enabled": bool(self.cfg.use_tradeoff_waypoint_mobility),
+                "tradeoff_phase_offset": int(self.tradeoff_phase_offset),
+                "tradeoff_segment_slots": int(self.cfg.tradeoff_segment_slots),
+                "direct_friendly_centers": self._direct_centers.astype(float).tolist(),
+                "relay_stressed_centers": self._relay_centers.astype(float).tolist(),
+            }
+        )
         return out
-
 
     def tradeoff_alpha(self) -> float:
         """0=direct-friendly endpoint, 1=relay-stressed endpoint."""

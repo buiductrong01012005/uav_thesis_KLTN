@@ -9,15 +9,17 @@ consecutive steps. No future environment rollout and no teleporting.
 Purpose: separate one-step greedy-navigation failure from role-composition
 constraints. Report original and repaired variants separately.
 """
+
 from __future__ import annotations
 
-from typing import Any
 
 import numpy as np
 
-from src.baselines.thesis_exhaustive_cartesian_role_greedy import ExhaustiveCartesianRoleGreedy
+from src.baselines.thesis_exhaustive_cartesian_role_greedy import (
+    ExhaustiveCartesianRoleGreedy,
+)
 from src.baselines.fixed_mix_cartesian_greedy import FixedMixCartesianGreedy
-from src.envs.v0_env import ACCESS, RELAY, MOVE_DELTAS
+from src.envs.v0_env import ACCESS, RELAY as RELAY, MOVE_DELTAS
 from src.envs.v4_fixed_mobile_battery_env import ACTIVE
 
 
@@ -54,9 +56,18 @@ class _ServiceRecoveryMixin:
         goal_xy = (grid[:, ::-1].astype(float) + 0.5) * float(e.cfg.cell_size_m)
         gateways = np.asarray(e.surviving_bs_xy, dtype=float)
         max_bh = float(e.cfg.backhaul_radius_cells) * float(e.cfg.cell_size_m)
-        can_backhaul = np.min(np.linalg.norm(goal_xy[:, None, :] - gateways[None, :, :], axis=2), axis=1) <= max_bh + 1e-9
+        can_backhaul = (
+            np.min(
+                np.linalg.norm(goal_xy[:, None, :] - gateways[None, :, :], axis=2),
+                axis=1,
+            )
+            <= max_bh + 1e-9
+        )
         counts = np.sum(
-            np.linalg.norm(grid[:, None, :].astype(float) - np.asarray(e.ue_positions)[None, :, :], axis=2)
+            np.linalg.norm(
+                grid[:, None, :].astype(float) - np.asarray(e.ue_positions)[None, :, :],
+                axis=2,
+            )
             <= float(e.cfg.access_radius_cells) + 1e-9,
             axis=1,
         )
@@ -66,8 +77,9 @@ class _ServiceRecoveryMixin:
     def _recovery_actions(self, base_actions: list[int], mask: np.ndarray) -> list[int]:
         e = self.env
         roles = [e.decode_action(int(a))[1] for a in base_actions]
-        access_ids = [i for i in range(e.cfg.num_uavs)
-                      if e.status[i] == ACTIVE and roles[i] == ACCESS]
+        access_ids = [
+            i for i in range(e.cfg.num_uavs) if e.status[i] == ACTIVE and roles[i] == ACCESS
+        ]
         goals, coverage = self._access_goal_candidates()
         if not len(goals) or not access_ids:
             self._last_goal_positions = {}
@@ -81,10 +93,10 @@ class _ServiceRecoveryMixin:
             dist = np.sum(np.abs(goals - e.uav_positions[uid][None, :]), axis=1)
             # Weight covered users but do not blindly send everyone to one
             # hotspot; nearest viable goal is preferred when coverage ties.
-            value = (1.5 * coverage - .8 * dist).astype(float)
+            value = (1.5 * coverage - 0.8 * dist).astype(float)
             for assigned in occupied_goals:
                 separation = np.linalg.norm(goals - assigned[None, :], axis=1)
-                value -= 12.0 * np.exp(-(separation / 3.0)**2)
+                value -= 12.0 * np.exp(-((separation / 3.0) ** 2))
             goal = goals[int(np.argmax(value))]
             targets[uid] = goal.copy()
             occupied_goals.append(goal.copy())
@@ -113,7 +125,7 @@ class _ServiceRecoveryMixin:
             actions[uid] = action
             reserved.add((int(nxt[0]), int(nxt[1])))
 
-        self._last_goal_positions = {int(k): tuple(map(int, v)) for k,v in targets.items()}
+        self._last_goal_positions = {int(k): tuple(map(int, v)) for k, v in targets.items()}
         return actions
 
     def act(self, action_mask):
@@ -122,12 +134,14 @@ class _ServiceRecoveryMixin:
         if self.recovery_active:
             actions = self._recovery_actions(actions, np.asarray(action_mask))
             self.recovery_steps += 1
-        self.last_stats.update({
-            "zero_service_run_before_decision": self.zero_service_run,
-            "recovery_active": self.recovery_active,
-            "recovery_steps": self.recovery_steps,
-            "recovery_access_goals": self._last_goal_positions.copy(),
-        })
+        self.last_stats.update(
+            {
+                "zero_service_run_before_decision": self.zero_service_run,
+                "recovery_active": self.recovery_active,
+                "recovery_steps": self.recovery_steps,
+                "recovery_access_goals": self._last_goal_positions.copy(),
+            }
+        )
         return actions
 
 

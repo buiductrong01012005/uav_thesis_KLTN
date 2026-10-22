@@ -1,6 +1,6 @@
 from __future__ import annotations
 
-from itertools import permutations, product
+from itertools import product
 import numpy as np
 
 from src.envs.v0_env import ACCESS, RELAY
@@ -42,20 +42,14 @@ class StaticOraclePolicy:
 
         actions: list[int] = []
         for i in range(self.env.cfg.num_uavs):
-            move_idx = self._move_toward(
-                self.env.uav_positions[i], self.targets[i], action_mask[i]
-            )
+            move_idx = self._move_toward(self.env.uav_positions[i], self.targets[i], action_mask[i])
             role = int(self.target_roles[i])
             actions.append(self.env.encode_action(move_idx, role))
         return actions
 
     def _plan_targets(self):
         size = self.env.cfg.grid_size
-        cells = [
-            np.asarray([r, c], dtype=np.int64)
-            for r in range(size)
-            for c in range(size)
-        ]
+        cells = [np.asarray([r, c], dtype=np.int64) for r in range(size) for c in range(size)]
 
         best_score = None
         best_positions = None
@@ -71,9 +65,7 @@ class StaticOraclePolicy:
                 roles = np.asarray(roles_tuple, dtype=np.int64)
                 served = self._served_count_static(positions, roles)
 
-                travel = int(
-                    np.abs(self.env.uav_positions - positions).sum()
-                )
+                travel = int(np.abs(self.env.uav_positions - positions).sum())
                 geom = self._geometry_cost(positions, roles)
 
                 # Served count dominates. Among equal service configurations,
@@ -114,10 +106,7 @@ class StaticOraclePolicy:
 
             for relay_id in relay_ids:
                 relay = positions[relay_id]
-                if (
-                    self.env._distance(a, relay) <= R_b
-                    and self.env._distance(relay, bs) <= R_b
-                ):
+                if self.env._distance(a, relay) <= R_b and self.env._distance(relay, bs) <= R_b:
                     valid_access[access_id] = True
                     break
 
@@ -148,8 +137,7 @@ class StaticOraclePolicy:
                 cost += direct
             else:
                 via = min(
-                    self.env._distance(a, positions[r])
-                    + self.env._distance(positions[r], bs)
+                    self.env._distance(a, positions[r]) + self.env._distance(positions[r], bs)
                     for r in relay_ids
                 )
                 cost += min(direct, via)

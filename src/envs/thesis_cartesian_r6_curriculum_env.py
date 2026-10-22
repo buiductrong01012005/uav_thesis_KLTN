@@ -18,6 +18,7 @@ Target-aware (V7/V8/V9 source):
 The request telemetry is exposed to both methods; Cartesian does not use an
 explicit relay target, so the target-onehot block in its observation is zero.
 """
+
 from __future__ import annotations
 
 from dataclasses import dataclass
@@ -25,7 +26,7 @@ from typing import Sequence
 
 import numpy as np
 
-from src.envs.v0_env import ACCESS, RELAY, MOVE_DELTAS
+from src.envs.v0_env import ACCESS, RELAY as RELAY, MOVE_DELTAS
 from src.envs.v4_fixed_mobile_battery_env import ACTIVE
 from src.envs.v4_final_fixed_map_env import V4FinalFixedMapEnv
 from src.envs.v7_r6_macro_relay_stable_env import (
@@ -84,11 +85,13 @@ class CartesianR6Env(V7R6MacroRelayStableEnv):
         self.last_assisted_move[:] = STAY
         self._refresh_request_state()
         out = self._refresh_output(out)
-        out["episode_meta"].update({
-            "profile": "thesis_cartesian_r6",
-            "action_design": "5 movement directions x {Access, Relay}",
-            "routing": "opportunistic deterministic one-hop Relay routing",
-        })
+        out["episode_meta"].update(
+            {
+                "profile": "thesis_cartesian_r6",
+                "action_design": "5 movement directions x {Access, Relay}",
+                "routing": "opportunistic deterministic one-hop Relay routing",
+            }
+        )
         return out
 
     def compute_network(self) -> dict:
@@ -133,24 +136,28 @@ class CartesianR6Env(V7R6MacroRelayStableEnv):
         # to BOTH action formulations in the controlled comparison.
         self._refresh_request_state()
         out = self._refresh_output(out)
-        out["info"].update({
-            "relay_needed": self.relay_needed.astype(int).tolist(),
-            "request_open": self.request_open.astype(int).tolist(),
-            "request_load_mbps": self.request_load_mbps.astype(float).tolist(),
-            "request_direct_bh_mbps": self.request_direct_bh_mbps.astype(float).tolist(),
-            "request_deficit": self.request_deficit.astype(float).tolist(),
-            "relay_target": [-1] * self.cfg.num_uavs,
-            "relay_claim_conflicts_this_slot": 0,
-        })
+        out["info"].update(
+            {
+                "relay_needed": self.relay_needed.astype(int).tolist(),
+                "request_open": self.request_open.astype(int).tolist(),
+                "request_load_mbps": self.request_load_mbps.astype(float).tolist(),
+                "request_direct_bh_mbps": self.request_direct_bh_mbps.astype(float).tolist(),
+                "request_deficit": self.request_deficit.astype(float).tolist(),
+                "relay_target": [-1] * self.cfg.num_uavs,
+                "relay_claim_conflicts_this_slot": 0,
+            }
+        )
         return out
 
     def _episode_meta(self) -> dict:
         meta = V7R6MacroRelayStableEnv._episode_meta(self)
-        meta.update({
-            "control_version": "thesis_cartesian_r6",
-            "action_design": "movement x role; 10 actions",
-            "relay_assignment": "no explicit target; network layer opportunistically chooses one-hop routes",
-        })
+        meta.update(
+            {
+                "control_version": "thesis_cartesian_r6",
+                "action_design": "movement x role; 10 actions",
+                "relay_assignment": "no explicit target; network layer opportunistically chooses one-hop routes",
+            }
+        )
         return meta
 
 
@@ -179,10 +186,12 @@ class CartesianR6BatteryFocusEnv(CartesianR6BatteryEnv):
     def reset(self, seed: int | None = None):
         out = super().reset(seed=seed)
         if self.cfg.randomize_residual_battery:
-            sampled = float(self.rng.uniform(
-                self.cfg.residual_battery_min,
-                self.cfg.residual_battery_max,
-            ))
+            sampled = float(
+                self.rng.uniform(
+                    self.cfg.residual_battery_min,
+                    self.cfg.residual_battery_max,
+                )
+            )
             self.battery[int(self.residual_uav_idx)] = sampled
             self.sampled_residual_initial_battery = sampled
             out["obs"] = self.get_obs()
@@ -197,9 +206,8 @@ class CartesianR6BatteryFocusEnv(CartesianR6BatteryEnv):
         if self.status[i] != ACTIVE:
             return float("nan")
         _, dist_steps = self._nearest_station(self.uav_positions[i])
-        threshold = (
-            float(dist_steps) * float(self.cfg.returning_step_drain)
-            + float(self.cfg.return_safety_margin)
+        threshold = float(dist_steps) * float(self.cfg.returning_step_drain) + float(
+            self.cfg.return_safety_margin
         )
         return float(self.battery[i] - threshold)
 

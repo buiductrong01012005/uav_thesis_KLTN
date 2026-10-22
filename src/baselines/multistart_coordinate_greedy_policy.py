@@ -8,6 +8,7 @@ The planner does not enumerate the full joint configuration space and does not
 use learning.  It replans when fleet availability changes and then moves each
 active UAV one grid step toward the selected target.
 """
+
 from __future__ import annotations
 
 import numpy as np
@@ -33,9 +34,7 @@ class MultiStartCoordinateGreedyPolicy:
         self.last_active = None
 
     def act(self, action_mask: np.ndarray) -> list[int]:
-        active = getattr(
-            self.env, "active", np.ones(self.env.cfg.num_uavs, dtype=bool)
-        ).copy()
+        active = getattr(self.env, "active", np.ones(self.env.cfg.num_uavs, dtype=bool)).copy()
         signature = tuple(bool(x) for x in active)
         if self.targets is None or signature != self.last_active:
             self._replan(active)
@@ -62,8 +61,7 @@ class MultiStartCoordinateGreedyPolicy:
         batch, n_agents, _ = positions.shape
         bs = np.asarray(env.bs_position, dtype=np.float64)
         direct = (
-            np.linalg.norm(positions - bs[None, None, :], axis=2)
-            <= env.cfg.backhaul_range + 1e-9
+            np.linalg.norm(positions - bs[None, None, :], axis=2) <= env.cfg.backhaul_range + 1e-9
         )
         valid_access = np.zeros((batch, n_agents), dtype=bool)
 
@@ -84,13 +82,8 @@ class MultiStartCoordinateGreedyPolicy:
             valid_access[:, a] = is_access & (direct[:, a] | via_relay)
 
         ue = np.asarray(env.ue_positions, dtype=np.float64)
-        distance = np.linalg.norm(
-            positions[:, None, :, :] - ue[None, :, None, :], axis=3
-        )
-        served = (
-            (distance <= env.cfg.access_range + 1e-9)
-            & valid_access[:, None, :]
-        ).any(axis=2)
+        distance = np.linalg.norm(positions[:, None, :, :] - ue[None, :, None, :], axis=3)
+        served = ((distance <= env.cfg.access_range + 1e-9) & valid_access[:, None, :]).any(axis=2)
         return served.sum(axis=1).astype(np.int64)
 
     def _coordinate_ascent(
@@ -114,33 +107,24 @@ class MultiStartCoordinateGreedyPolicy:
                 role_batch[:, i] = self.candidate_roles
 
                 served = self._batch_served_count(pos_batch, role_batch, active)
-                travel = np.abs(
-                    self.candidate_positions - actual_positions[i]
-                ).sum(axis=1)
+                travel = np.abs(self.candidate_positions - actual_positions[i]).sum(axis=1)
                 same_role = (self.candidate_roles == roles[i]).astype(np.int64)
 
                 # Lexicographic maximum: served, -travel, keep-current-role.
                 best = np.lexsort((same_role, -travel, served))[-1]
                 new_pos = self.candidate_positions[best]
                 new_role = int(self.candidate_roles[best])
-                if (
-                    not np.array_equal(new_pos, positions[i])
-                    or new_role != int(roles[i])
-                ):
+                if not np.array_equal(new_pos, positions[i]) or new_role != int(roles[i]):
                     changed = True
                 positions[i] = new_pos
                 roles[i] = new_role
             if not changed:
                 break
 
-        served = int(
-            self._batch_served_count(
-                positions[None, :, :], roles[None, :], active
-            )[0]
+        served = int(self._batch_served_count(positions[None, :, :], roles[None, :], active)[0])
+        travel = (
+            int(np.abs(positions[active] - actual_positions[active]).sum()) if active.any() else 0
         )
-        travel = int(
-            np.abs(positions[active] - actual_positions[active]).sum()
-        ) if active.any() else 0
         return positions, roles, served, travel
 
     def _replan(self, active: np.ndarray):
@@ -158,9 +142,7 @@ class MultiStartCoordinateGreedyPolicy:
 
         best = None
         for positions, roles in initializations:
-            p, r, served, travel = self._coordinate_ascent(
-                positions, roles, active, actual
-            )
+            p, r, served, travel = self._coordinate_ascent(positions, roles, active, actual)
             score = (served, -travel)
             if best is None or score > best[0]:
                 best = (score, p, r)

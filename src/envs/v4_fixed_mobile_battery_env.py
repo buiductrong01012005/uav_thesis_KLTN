@@ -52,11 +52,13 @@ class V4FixedMobileBatteryConfig:
 
     # Start near the affected/right side, but not pre-arranged into roles.
     uav_start_cells: tuple[tuple[int, int], ...] = (
-        (8, 2), (10, 3), (12, 4), (9, 5), (11, 6)
+        (8, 2),
+        (10, 3),
+        (12, 4),
+        (9, 5),
+        (11, 6),
     )
-    charging_station_cells: tuple[tuple[int, int], ...] = (
-        (1, 1), (18, 1), (10, 18)
-    )
+    charging_station_cells: tuple[tuple[int, int], ...] = ((1, 1), (18, 1), (10, 18))
 
     # Fixed altitude and radio model.
     uav_altitude_m: float = 100.0
@@ -222,7 +224,11 @@ class V4FixedMobileBatteryEnv:
                 drain = self.cfg.hover_drain
                 if moved_active[i]:
                     drain += self.cfg.move_extra_drain
-                drain += self.cfg.access_radio_drain if self.roles[i] == ACCESS else self.cfg.relay_radio_drain
+                drain += (
+                    self.cfg.access_radio_drain
+                    if self.roles[i] == ACCESS
+                    else self.cfg.relay_radio_drain
+                )
                 self.battery[i] = max(0.0, float(self.battery[i] - drain))
             elif status_before[i] == RETURNING:
                 self.battery[i] = max(0.0, float(self.battery[i] - self.cfg.returning_step_drain))
@@ -263,8 +269,12 @@ class V4FixedMobileBatteryEnv:
             "t": self.t,
             "utility": utility,
             "mean_rate_mbps": float(np.mean(net["ue_rate_mbps"])),
-            "sum_served_mbps": float(np.sum(np.minimum(net["ue_rate_mbps"], self.cfg.ue_demand_mbps))),
-            "satisfied_fraction": float(np.mean(net["ue_rate_mbps"] >= self.cfg.ue_demand_mbps - 1e-9)),
+            "sum_served_mbps": float(
+                np.sum(np.minimum(net["ue_rate_mbps"], self.cfg.ue_demand_mbps))
+            ),
+            "satisfied_fraction": float(
+                np.mean(net["ue_rate_mbps"] >= self.cfg.ue_demand_mbps - 1e-9)
+            ),
             "num_access": int(np.sum((self.roles == ACCESS) & (self.status == ACTIVE))),
             "num_relay": int(np.sum((self.roles == RELAY) & (self.status == ACTIVE))),
             "active_count": int(np.sum(self.status == ACTIVE)),
@@ -280,7 +290,9 @@ class V4FixedMobileBatteryEnv:
             "routes": net["routes"],
             "access_loads": net["access_loads"],
             "backhaul_caps_mbps": net["backhaul_caps_mbps"],
-            "role_switches_this_slot": int(np.sum((roles_before != self.roles) & (status_before == ACTIVE))),
+            "role_switches_this_slot": int(
+                np.sum((roles_before != self.roles) & (status_before == ACTIVE))
+            ),
         }
         return {
             "obs": self.get_obs(),
@@ -296,7 +308,7 @@ class V4FixedMobileBatteryEnv:
 
     def compute_network(self) -> dict:
         """Deterministic association + one-hop shared-backhaul allocation."""
-        n = self.cfg.num_uavs
+        _n = self.cfg.num_uavs
         M = self.cfg.num_ues
         active = self.status == ACTIVE
         access_ids = np.flatnonzero(active & (self.roles == ACCESS))
@@ -313,8 +325,10 @@ class V4FixedMobileBatteryEnv:
             uav_xy = self._cell_to_xy(self.uav_positions[aid])
             for u in range(M):
                 pl = self._a2g_path_loss_db(
-                    self.ue_positions[u], self.cfg.ue_height_m,
-                    uav_xy, self.cfg.uav_altitude_m,
+                    self.ue_positions[u],
+                    self.cfg.ue_height_m,
+                    uav_xy,
+                    self.cfg.uav_altitude_m,
                     self.cfg.access_fc_hz,
                 )
                 scores[u, jj] = self.cfg.access_tx_dbm - pl
@@ -352,13 +366,17 @@ class V4FixedMobileBatteryEnv:
             uav_xy = self._cell_to_xy(self.uav_positions[aid])
             for u in users:
                 pl = self._a2g_path_loss_db(
-                    self.ue_positions[u], self.cfg.ue_height_m,
-                    uav_xy, self.cfg.uav_altitude_m,
+                    self.ue_positions[u],
+                    self.cfg.ue_height_m,
+                    uav_xy,
+                    self.cfg.uav_altitude_m,
                     self.cfg.access_fc_hz,
                 )
                 rates[u] = self._shannon_rate_mbps(tx_dbm_per_ue - pl, bw)
             access_ue_rates[int(aid)] = rates
-            access_offer[int(aid)] = float(sum(min(r, self.cfg.ue_demand_mbps) for r in rates.values()))
+            access_offer[int(aid)] = float(
+                sum(min(r, self.cfg.ue_demand_mbps) for r in rates.values())
+            )
 
         # One-hop route choice. Direct and Relay routes are compared by capacity.
         direct_cap: dict[int, float] = {}
@@ -402,10 +420,10 @@ class V4FixedMobileBatteryEnv:
             clients = [int(a) for a in access_ids if routes[int(a)] == int(rid)]
             if not clients:
                 continue
-            weights = np.asarray([
-                max(1e-6, min(access_offer[a], relay_first_cap[(a, int(rid))]))
-                for a in clients
-            ], dtype=np.float64)
+            weights = np.asarray(
+                [max(1e-6, min(access_offer[a], relay_first_cap[(a, int(rid))])) for a in clients],
+                dtype=np.float64,
+            )
             shares = relay_bs_cap[int(rid)] * weights / weights.sum()
             for a, share in zip(clients, shares):
                 bh_cap[a] = min(relay_first_cap[(a, int(rid))], float(share))
@@ -448,11 +466,13 @@ class V4FixedMobileBatteryEnv:
             else:
                 feats.extend([0.0, 0.0])
             feats.append(float(self.battery[i] / self.cfg.max_battery))
-            feats.extend([
-                float(self.status[i] == ACTIVE),
-                float(self.status[i] == RETURNING),
-                float(self.status[i] == CHARGING),
-            ])
+            feats.extend(
+                [
+                    float(self.status[i] == ACTIVE),
+                    float(self.status[i] == RETURNING),
+                    float(self.status[i] == CHARGING),
+                ]
+            )
 
         demand = self._demand_map()
         surviving = np.zeros((g, g), dtype=np.float32)
@@ -506,7 +526,9 @@ class V4FixedMobileBatteryEnv:
 
     def _init_mobile_ues(self):
         # Deterministic load split with randomized hotspot geometry per episode.
-        counts = np.full(self.cfg.num_hotspots, self.cfg.num_ues // self.cfg.num_hotspots, dtype=int)
+        counts = np.full(
+            self.cfg.num_hotspots, self.cfg.num_ues // self.cfg.num_hotspots, dtype=int
+        )
         counts[: self.cfg.num_ues % self.cfg.num_hotspots] += 1
         labels = []
         for h, c in enumerate(counts):
@@ -583,9 +605,7 @@ class V4FixedMobileBatteryEnv:
         norms = np.linalg.norm(self.ue_offsets, axis=1)
         bad = norms > self.cfg.max_ue_offset_cells
         if np.any(bad):
-            self.ue_offsets[bad] *= (
-                self.cfg.max_ue_offset_cells / norms[bad]
-            )[:, None]
+            self.ue_offsets[bad] *= (self.cfg.max_ue_offset_cells / norms[bad])[:, None]
 
     def _center_is_valid(self, center: np.ndarray) -> bool:
         if np.any(center < 0.0) or np.any(center >= self.cfg.grid_size):
@@ -687,10 +707,13 @@ class V4FixedMobileBatteryEnv:
 
     def _cell_to_xy(self, cell: Iterable[float]) -> np.ndarray:
         r, c = map(float, cell)
-        return np.asarray([
-            (c + 0.5) * self.cfg.cell_size_m,
-            (r + 0.5) * self.cfg.cell_size_m,
-        ], dtype=np.float64)
+        return np.asarray(
+            [
+                (c + 0.5) * self.cfg.cell_size_m,
+                (r + 0.5) * self.cfg.cell_size_m,
+            ],
+            dtype=np.float64,
+        )
 
     def _inside_grid(self, cell: np.ndarray) -> bool:
         return bool(np.all(cell >= 0) and np.all(cell < self.cfg.grid_size))

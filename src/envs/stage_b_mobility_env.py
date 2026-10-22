@@ -107,10 +107,7 @@ class MobilityRandomizedStageBChargingEnv(RandomizedStageBChargingEnv):
 
         for ue_id, ue_pos in enumerate(self.actual_ue_positions):
             for access_id in valid_access_ids:
-                if (
-                    self._distance(ue_pos, self.uav_positions[access_id])
-                    <= self.cfg.access_range
-                ):
+                if self._distance(ue_pos, self.uav_positions[access_id]) <= self.cfg.access_range:
                     served[ue_id] = True
                     break
         return served, valid_access, relay_chains

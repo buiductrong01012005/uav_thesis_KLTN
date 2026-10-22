@@ -56,22 +56,16 @@ class V5RelayRequestSpatialAgentQNetwork(nn.Module):
 
     def forward(self, obs: torch.Tensor) -> torch.Tensor:
         if obs.ndim != 2 or obs.shape[-1] != self.expected_obs_dim:
-            raise ValueError(
-                f"Expected [B,{self.expected_obs_dim}], got {tuple(obs.shape)}"
-            )
+            raise ValueError(f"Expected [B,{self.expected_obs_dim}], got {tuple(obs.shape)}")
         b = obs.shape[0]
         state = obs[:, : self.state_dim]
         agent_id = obs[:, self.state_dim :]
-        demand = state[:, : self.coarse_cells].view(
-            b, 1, self.coarse_size, self.coarse_size
-        )
+        demand = state[:, : self.coarse_cells].view(b, 1, self.coarse_size, self.coarse_size)
         uav = state[:, self.coarse_cells :].view(b, self.n_agents, self.UAV_FEAT)
 
         fine = torch.round(uav[:, :, :2] * max(self.grid_size - 1, 1)).long()
         fine = fine.clamp(0, self.grid_size - 1)
-        coarse = torch.div(fine, self.block, rounding_mode="floor").clamp(
-            0, self.coarse_size - 1
-        )
+        coarse = torch.div(fine, self.block, rounding_mode="floor").clamp(0, self.coarse_size - 1)
         flat_idx = coarse[:, :, 0] * self.coarse_size + coarse[:, :, 1]
 
         relay = uav[:, :, 2].clamp(0.0, 1.0)
@@ -102,7 +96,15 @@ class V5RelayRequestSpatialAgentQNetwork(nn.Module):
         self_map = self_flat.view(b, 1, self.coarse_size, self.coarse_size)
 
         maps = torch.cat(
-            [demand, access_map, relay_map, request_map, returning_map, charging_map, self_map],
+            [
+                demand,
+                access_map,
+                relay_map,
+                request_map,
+                returning_map,
+                charging_map,
+                self_map,
+            ],
             dim=1,
         )
         z = self.encoder(maps).flatten(1)

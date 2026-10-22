@@ -26,6 +26,7 @@ Scenario
 - battery lifecycle OFF
 - 5 UAVs, 10 policy actions/UAV with target-stable action semantics
 """
+
 from __future__ import annotations
 
 from dataclasses import dataclass
@@ -193,8 +194,7 @@ class V7R6MacroRelayStableEnv(V4FinalFixedMapEnv):
                 continue
             ratio = float(direct[i] / max(load, 1e-9))
             threshold = (
-                self.cfg.relay_request_off_ratio if prev[i]
-                else self.cfg.relay_request_on_ratio
+                self.cfg.relay_request_off_ratio if prev[i] else self.cfg.relay_request_on_ratio
             )
             needed[i] = ratio < threshold
 
@@ -310,15 +310,17 @@ class V7R6MacroRelayStableEnv(V4FinalFixedMapEnv):
             self.rejoin_time[:] = -1
         self._refresh_request_state()
         out = self._refresh_output(out)
-        out["episode_meta"].update({
-            "profile": "v7_r6_macro_relay_stability",
-            "canonical_v4_topology": True,
-            "backhaul_radius_cells": float(self.cfg.backhaul_radius_cells),
-            "ue_mobility": True,
-            "battery_cycle": bool(self.cfg.enable_battery_cycle),
-            "all_access_initially": True,
-            "macro_relay": True,
-        })
+        out["episode_meta"].update(
+            {
+                "profile": "v7_r6_macro_relay_stability",
+                "canonical_v4_topology": True,
+                "backhaul_radius_cells": float(self.cfg.backhaul_radius_cells),
+                "ue_mobility": True,
+                "battery_cycle": bool(self.cfg.enable_battery_cycle),
+                "all_access_initially": True,
+                "macro_relay": True,
+            }
+        )
         return out
 
     def step(self, actions: Sequence[int]):
@@ -345,10 +347,7 @@ class V7R6MacroRelayStableEnv(V4FinalFixedMapEnv):
         # Predict Access target movement before matching. A target that also sent
         # a RelayTo proposal has no explicit Access movement, so its current cell
         # is used.
-        planned_access = {
-            i: self._planned_access_cell(i, raw[i])
-            for i in range(self.cfg.num_uavs)
-        }
+        planned_access = {i: self._planned_access_cell(i, raw[i]) for i in range(self.cfg.num_uavs)}
 
         # Rank competing proposals by the actual geometry of the best assisted
         # one-step relay plan, rather than by actor id. This keeps the high-level
@@ -366,11 +365,7 @@ class V7R6MacroRelayStableEnv(V4FinalFixedMapEnv):
         used_targets: set[int] = set()
         rejected: list[tuple[int, int]] = []
         for _score, _na, _nt, actor, target, move_idx in ranked_proposals:
-            conflict = (
-                actor in used_targets
-                or target in used_targets
-                or target in used_actors
-            )
+            conflict = actor in used_targets or target in used_targets or target in used_actors
             if conflict:
                 rejected.append((actor, target))
                 continue
@@ -417,18 +412,20 @@ class V7R6MacroRelayStableEnv(V4FinalFixedMapEnv):
         # Request state is for the next decision and uses the next UE state.
         self._refresh_request_state()
         out = self._refresh_output(out)
-        out["info"].update({
-            "relay_needed": self.relay_needed.astype(int).tolist(),
-            "request_open": self.request_open.astype(int).tolist(),
-            "request_load_mbps": self.request_load_mbps.astype(float).tolist(),
-            "request_direct_bh_mbps": self.request_direct_bh_mbps.astype(float).tolist(),
-            "request_deficit": self.request_deficit.astype(float).tolist(),
-            "relay_target": self.relay_target.astype(int).tolist(),
-            "assisted_relay_move": self.last_assisted_move.astype(int).tolist(),
-            "accepted_macro_relays_this_slot": [[a, t, m] for a, t, m in accepted],
-            "rejected_macro_relay_claims_this_slot": [[a, t] for a, t in rejected],
-            "relay_claim_conflicts_this_slot": int(len(rejected)),
-        })
+        out["info"].update(
+            {
+                "relay_needed": self.relay_needed.astype(int).tolist(),
+                "request_open": self.request_open.astype(int).tolist(),
+                "request_load_mbps": self.request_load_mbps.astype(float).tolist(),
+                "request_direct_bh_mbps": self.request_direct_bh_mbps.astype(float).tolist(),
+                "request_deficit": self.request_deficit.astype(float).tolist(),
+                "relay_target": self.relay_target.astype(int).tolist(),
+                "assisted_relay_move": self.last_assisted_move.astype(int).tolist(),
+                "accepted_macro_relays_this_slot": [[a, t, m] for a, t, m in accepted],
+                "rejected_macro_relay_claims_this_slot": [[a, t] for a, t in rejected],
+                "relay_claim_conflicts_this_slot": int(len(rejected)),
+            }
+        )
         return out
 
     def get_action_mask(self) -> np.ndarray:
@@ -479,8 +476,10 @@ class V7R6MacroRelayStableEnv(V4FinalFixedMapEnv):
                     continue
                 ue_xy = self._cell_to_xy(ue_grid)
                 pl = self._a2g_path_loss_db(
-                    ue_xy, self.cfg.ue_height_m,
-                    uav_xy, self.cfg.uav_altitude_m,
+                    ue_xy,
+                    self.cfg.ue_height_m,
+                    uav_xy,
+                    self.cfg.uav_altitude_m,
                     self.cfg.access_fc_hz,
                 )
                 scores[u, jj] = self.cfg.access_tx_dbm - pl
@@ -523,8 +522,10 @@ class V7R6MacroRelayStableEnv(V4FinalFixedMapEnv):
             for u in users:
                 ue_xy = self._cell_to_xy(self.ue_positions[u])
                 pl = self._a2g_path_loss_db(
-                    ue_xy, self.cfg.ue_height_m,
-                    uav_xy, self.cfg.uav_altitude_m,
+                    ue_xy,
+                    self.cfg.ue_height_m,
+                    uav_xy,
+                    self.cfg.uav_altitude_m,
                     self.cfg.access_fc_hz,
                 )
                 rates[u] = self._shannon_rate_mbps(tx_dbm_per_ue - pl, bw)
@@ -609,11 +610,13 @@ class V7R6MacroRelayStableEnv(V4FinalFixedMapEnv):
             feats.extend((self.uav_positions[i] / gden).astype(np.float32).tolist())
             feats.append(float(self.status[i] == ACTIVE and self.roles[i] == RELAY))
             feats.append(float(self.battery[i] / self.cfg.max_battery))
-            feats.extend([
-                float(self.status[i] == ACTIVE),
-                float(self.status[i] == 1),
-                float(self.status[i] == 2),
-            ])
+            feats.extend(
+                [
+                    float(self.status[i] == ACTIVE),
+                    float(self.status[i] == 1),
+                    float(self.status[i] == 2),
+                ]
+            )
             feats.append(float(self.relay_needed[i]))
             feats.append(float(self.request_open[i]))
             feats.append(float(np.clip(self.request_load_mbps[i] / max_load, 0.0, 1.0)))
@@ -652,14 +655,16 @@ class V7R6MacroRelayStableEnv(V4FinalFixedMapEnv):
 
     def _episode_meta(self) -> dict:
         meta = super()._episode_meta()
-        meta.update({
-            "control_version": "V7_R6_macro_relay_stability",
-            "n_actions": int(self.n_actions),
-            "action_design": "0-4 Access movement; 5+j RelayTo(UAV j), j=0..4; RelayTo(self) masked; assisted one-step movement",
-            "relay_assignment": "one-slot; no persistent assignment; no ReleaseRelay action",
-            "routing": "target-exclusive designated Relay; no opportunistic reuse by other Access UAVs",
-            "relay_request_on_ratio": float(self.cfg.relay_request_on_ratio),
-            "relay_request_off_ratio": float(self.cfg.relay_request_off_ratio),
-            "reward": "mean user satisfaction only; unchanged",
-        })
+        meta.update(
+            {
+                "control_version": "V7_R6_macro_relay_stability",
+                "n_actions": int(self.n_actions),
+                "action_design": "0-4 Access movement; 5+j RelayTo(UAV j), j=0..4; RelayTo(self) masked; assisted one-step movement",
+                "relay_assignment": "one-slot; no persistent assignment; no ReleaseRelay action",
+                "routing": "target-exclusive designated Relay; no opportunistic reuse by other Access UAVs",
+                "relay_request_on_ratio": float(self.cfg.relay_request_on_ratio),
+                "relay_request_off_ratio": float(self.cfg.relay_request_off_ratio),
+                "reward": "mean user satisfaction only; unchanged",
+            }
+        )
         return meta

@@ -51,11 +51,14 @@ class RandomizedStageBChargingEnv(StageBChargingEnv):
     """C3 curriculum task with randomized spatial and fleet dynamics."""
 
     def __init__(self, config: RandomStageBChargingConfig):
-        if config.num_ues > config.grid_size ** 2:
+        if config.num_ues > config.grid_size**2:
             raise ValueError("num_ues cannot exceed grid cells")
         if config.dropout_slot_min < 1 or config.dropout_slot_max < config.dropout_slot_min:
             raise ValueError("invalid dropout slot range")
-        if config.charge_duration_min < 1 or config.charge_duration_max < config.charge_duration_min:
+        if (
+            config.charge_duration_min < 1
+            or config.charge_duration_max < config.charge_duration_min
+        ):
             raise ValueError("invalid charge-duration range")
 
         self.random_cfg = config
@@ -67,28 +70,29 @@ class RandomizedStageBChargingEnv(StageBChargingEnv):
 
         # Placeholder UE set; every reset replaces it before parent reset.
         initial_ues = tuple(
-            (i // config.grid_size, i % config.grid_size)
-            for i in range(config.num_ues)
+            (i // config.grid_size, i % config.grid_size) for i in range(config.num_ues)
         )
         initial_battery = tuple([config.max_battery] * config.num_uavs)
 
-        super().__init__(StageBChargingConfig(
-            discovered_ue_positions=initial_ues,
-            uav_start_positions=config.uav_start_positions,
-            total_true_ues=config.num_ues,
-            grid_size=config.grid_size,
-            num_uavs=config.num_uavs,
-            horizon=config.horizon,
-            access_range=config.access_range,
-            backhaul_range=config.backhaul_range,
-            surviving_bs=config.surviving_bs,
-            initial_battery=initial_battery,
-            max_battery=config.max_battery,
-            base_drain_per_slot=config.base_drain_per_slot,
-            return_threshold=config.return_threshold,
-            charging_station=config.charging_station,
-            charge_duration=config.charge_duration_min,
-        ))
+        super().__init__(
+            StageBChargingConfig(
+                discovered_ue_positions=initial_ues,
+                uav_start_positions=config.uav_start_positions,
+                total_true_ues=config.num_ues,
+                grid_size=config.grid_size,
+                num_uavs=config.num_uavs,
+                horizon=config.horizon,
+                access_range=config.access_range,
+                backhaul_range=config.backhaul_range,
+                surviving_bs=config.surviving_bs,
+                initial_battery=initial_battery,
+                max_battery=config.max_battery,
+                base_drain_per_slot=config.base_drain_per_slot,
+                return_threshold=config.return_threshold,
+                charging_station=config.charging_station,
+                charge_duration=config.charge_duration_min,
+            )
+        )
 
     def seed(self, seed: int):
         self.rng = np.random.default_rng(seed)
@@ -120,7 +124,7 @@ class RandomizedStageBChargingEnv(StageBChargingEnv):
         # Spatial randomization.
         self.hotspot_center = self.rng.integers(0, g, size=2, dtype=np.int64)
         dist2 = np.sum((cells - self.hotspot_center[None, :]) ** 2, axis=1)
-        sigma2 = max(cfg.hotspot_sigma ** 2, 1e-6)
+        sigma2 = max(cfg.hotspot_sigma**2, 1e-6)
         weights = np.exp(-dist2 / (2.0 * sigma2)) + 1e-9
         weights /= weights.sum()
         idx = self.rng.choice(len(cells), size=cfg.num_ues, replace=False, p=weights)
@@ -145,9 +149,8 @@ class RandomizedStageBChargingEnv(StageBChargingEnv):
         batteries = [float(cfg.max_battery)] * cfg.num_uavs
         # The parent triggers RETURNING after the active-slot drain when
         # battery <= threshold, therefore threshold + k*drain triggers at slot k.
-        batteries[self.sampled_dropout_uav] = (
-            float(cfg.return_threshold)
-            + self.sampled_dropout_slot * float(cfg.base_drain_per_slot)
-        )
+        batteries[self.sampled_dropout_uav] = float(
+            cfg.return_threshold
+        ) + self.sampled_dropout_slot * float(cfg.base_drain_per_slot)
         self.charging_cfg.initial_battery = tuple(batteries)
         self.charging_cfg.charge_duration = self.sampled_charge_duration

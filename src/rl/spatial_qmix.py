@@ -60,9 +60,7 @@ class SpatialAgentQNetwork(nn.Module):
         if obs.ndim != 2:
             raise ValueError("SpatialAgentQNetwork expects [B, obs_dim]")
         if obs.shape[-1] != self.expected_obs_dim:
-            raise ValueError(
-                f"Expected obs_dim={self.expected_obs_dim}, got {obs.shape[-1]}"
-            )
+            raise ValueError(f"Expected obs_dim={self.expected_obs_dim}, got {obs.shape[-1]}")
 
         b = obs.shape[0]
         g = self.grid_size

@@ -79,9 +79,7 @@ class StageBChargingEnv(StageBRecoveryEnv):
         super().__init__(config)
 
     def reset(self):
-        self.battery = np.asarray(
-            self.charging_cfg.initial_battery, dtype=np.float32
-        ).copy()
+        self.battery = np.asarray(self.charging_cfg.initial_battery, dtype=np.float32).copy()
         self.status = np.full(self.cfg.num_uavs, ACTIVE, dtype=np.int64)
         self.active = np.ones(self.cfg.num_uavs, dtype=bool)
         self.charge_remaining = np.zeros(self.cfg.num_uavs, dtype=np.int64)
@@ -275,6 +273,7 @@ class StageBChargingEnv(StageBRecoveryEnv):
         elif dc != 0:
             pos[1] += 1 if dc > 0 else -1
         return pos
+
 
 class StageBChargingObservableEnv(StageBChargingEnv):
     """V3.1: expose only a normalized ETA-to-active feature per UAV.

@@ -148,7 +148,9 @@ class V1ScriptedPolicy:
 
         for access, relay in product(cells, repeat=2):
             served = self._served_by_static_accesses([access], relay, ues)
-            geom = self.env._distance(access, relay) + self.env._distance(relay, self.env.bs_position)
+            geom = self.env._distance(access, relay) + self.env._distance(
+                relay, self.env.bs_position
+            )
             score = (served, -geom)
             if best_score is None or score > best_score:
                 best_score = score
@@ -232,7 +234,10 @@ class V1ScriptedPolicy:
     def _nearest_cell(self, position, candidates):
         if not candidates:
             return None
-        return min(candidates, key=lambda c: (self._manhattan(position, c), int(c[0]), int(c[1]))).copy()
+        return min(
+            candidates,
+            key=lambda c: (self._manhattan(position, c), int(c[0]), int(c[1])),
+        ).copy()
 
     @staticmethod
     def _manhattan(a, b) -> int:

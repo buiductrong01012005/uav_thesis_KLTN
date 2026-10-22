@@ -8,6 +8,7 @@ model, and opportunistic one-hop routing are inherited unchanged.
 This module is intentionally separate so existing R6 experiments/checkpoints
 cannot be silently reinterpreted as R4 results.
 """
+
 from __future__ import annotations
 
 from dataclasses import dataclass
@@ -36,10 +37,12 @@ class CartesianR4RelayStressBatteryEnv(CartesianR6BatteryEnv):
 
     def reset(self, seed: int | None = None):
         out = super().reset(seed=seed)
-        out["episode_meta"].update({
-            "profile": "thesis_cartesian_r4_relay_stress",
-            "relay_stress": True,
-            "backhaul_radius_m": float(self.cfg.backhaul_radius_cells * self.cfg.cell_size_m),
-            "reference_r6_backhaul_radius_m": 300.0,
-        })
+        out["episode_meta"].update(
+            {
+                "profile": "thesis_cartesian_r4_relay_stress",
+                "relay_stress": True,
+                "backhaul_radius_m": float(self.cfg.backhaul_radius_cells * self.cfg.cell_size_m),
+                "reference_r6_backhaul_radius_m": 300.0,
+            }
+        )
         return out

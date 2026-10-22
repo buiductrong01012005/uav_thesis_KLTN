@@ -13,6 +13,7 @@ Returning/Charging UAVs are controlled by the environment and expose only the
 policy-level Stay placeholder in the action mask.  A Relay macro lasts one slot;
 there is no persistent assignment and no ReleaseRelay action.
 """
+
 from __future__ import annotations
 
 from dataclasses import dataclass
@@ -55,22 +56,26 @@ class V8R6MacroRelayBatteryEnv(V7R6MacroRelayStableEnv):
 
     def reset(self, seed: int | None = None):
         out = super().reset(seed=seed)
-        out["episode_meta"].update({
-            "profile": "v8_r6_macro_relay_battery",
-            "battery_cycle": True,
-            "battery_control": "environment-controlled Active->Returning->Charging->Active",
-            "residual_initial_battery": float(self.cfg.residual_initial_battery),
-            "randomize_residual_uav": bool(self.cfg.randomize_residual_uav),
-            "rejoin_threshold": float(self.cfg.rejoin_threshold),
-        })
+        out["episode_meta"].update(
+            {
+                "profile": "v8_r6_macro_relay_battery",
+                "battery_cycle": True,
+                "battery_control": "environment-controlled Active->Returning->Charging->Active",
+                "residual_initial_battery": float(self.cfg.residual_initial_battery),
+                "randomize_residual_uav": bool(self.cfg.randomize_residual_uav),
+                "rejoin_threshold": float(self.cfg.rejoin_threshold),
+            }
+        )
         return out
 
     def _episode_meta(self) -> dict:
         meta = super()._episode_meta()
-        meta.update({
-            "control_version": "V8_R6_macro_relay_battery",
-            "battery_cycle": True,
-            "battery_control": "environment-controlled return/charge/rejoin",
-            "battery_role": "robustness/availability extension; no proactive return action",
-        })
+        meta.update(
+            {
+                "control_version": "V8_R6_macro_relay_battery",
+                "battery_cycle": True,
+                "battery_control": "environment-controlled return/charge/rejoin",
+                "battery_role": "robustness/availability extension; no proactive return action",
+            }
+        )
         return meta

@@ -66,9 +66,7 @@ class V4SpatialAgentQNetwork(nn.Module):
         if obs.ndim != 2:
             raise ValueError("V4SpatialAgentQNetwork expects [B, obs_dim]")
         if obs.shape[-1] != self.expected_obs_dim:
-            raise ValueError(
-                f"Expected obs_dim={self.expected_obs_dim}, got {obs.shape[-1]}"
-            )
+            raise ValueError(f"Expected obs_dim={self.expected_obs_dim}, got {obs.shape[-1]}")
 
         b = obs.shape[0]
         g = self.grid_size
@@ -112,7 +110,16 @@ class V4SpatialAgentQNetwork(nn.Module):
 
         # 4x4 pooling because the core map is 20x20.
         demand_p = F.avg_pool2d(demand, kernel_size=4, stride=4) * 16.0
-        entity_maps = [surviving, failed, stations, access, relay, returning, charging, self_map]
+        entity_maps = [
+            surviving,
+            failed,
+            stations,
+            access,
+            relay,
+            returning,
+            charging,
+            self_map,
+        ]
         entity_p = [F.max_pool2d(x, kernel_size=4, stride=4) for x in entity_maps]
         maps = torch.cat([demand_p, *entity_p], dim=1)
         z = self.encoder(maps).flatten(1)

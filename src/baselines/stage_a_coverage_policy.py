@@ -61,9 +61,7 @@ class GreedyCoveragePolicy:
             # Exact same tie-breaker as before, but evaluate all unknown cells
             # and all next UAV positions with NumPy rather than nested loops.
             if len(unknown_cells):
-                manhattan = np.abs(
-                    unknown_cells[:, None, :] - positions[None, :, :]
-                ).sum(axis=2)
+                manhattan = np.abs(unknown_cells[:, None, :] - positions[None, :, :]).sum(axis=2)
                 nearest = manhattan.min(axis=1)
                 frontier_distance = int(np.maximum(nearest - 1, 0).sum())
             else:
