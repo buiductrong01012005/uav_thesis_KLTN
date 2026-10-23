@@ -78,6 +78,16 @@ Both bundles also contain `analyze_bundle.py` and `validate_bundle.py`, runnable
 with `--root <extracted-directory> --output <different-output-directory>`.
 Use an output outside the extracted bundle so its SHA256 manifest stays intact.
 
+Historical bundles exported before the shadow-diagnostic fix can be analyzed
+with `--allow-legacy-shadow-metrics` added to the offline command above. The
+old analyzer reused the final UE index in place of slot utility for
+`route_gain`, `net_role_gain`, and `oracle_headroom`. The opt-in reader verifies
+that the stored diagnostics match this exact historical error, checks every
+other stored metric as usual, and computes corrected diagnostics from the
+original traces. It records the corrected packet count and never rewrites the
+input bundle. Rewards, training, checkpoint selection, utility and throughput
+were unaffected; existing rollouts do not need to be rerun for this correction.
+
 Router v2 preserves association, access sharing, radio formulas and utility.
 After the original candidate route choice, it checks shared relay allocation
 against **same-Access direct fallback**. A losing client falls back to direct;

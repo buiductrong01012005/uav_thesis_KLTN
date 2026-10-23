@@ -80,8 +80,8 @@ def aggregate_episode(rows, slot_s=5.0):
         snap, post = row["service"], row["post"]
         net, demands = snap["network"], snap["ue_demand_mbps"]
         rates = net["ue_rate_mbps"]
-        u = rate_utility(net, demands)
-        utility.append(u)
+        slot_utility = rate_utility(net, demands)
+        utility.append(slot_utility)
         throughput.append(sum(rates))
         qos.append(sum(r >= d - 1e-9 for r, d in zip(rates, demands)))
         active.append(sum(s == 0 for s in snap["status"]))
@@ -132,11 +132,11 @@ def aggregate_episode(rows, slot_s=5.0):
             sh = row["shadow"]
             direct = rate_utility(sh["same_access_direct"], demands)
             all_access = rate_utility(sh["all_access"], demands)
-            route_gain.append(u - direct)
+            route_gain.append(slot_utility - direct)
             opportunity.append(all_access - direct)
-            net_gain.append(u - all_access)
+            net_gain.append(slot_utility - all_access)
             if "role_enumeration" in sh:
-                oracle_gap.append(max(r["utility"] for r in sh["role_enumeration"]) - u)
+                oracle_gap.append(max(r["utility"] for r in sh["role_enumeration"]) - slot_utility)
     first = next((i + 1 for i, u in enumerate(utility) if u > 1e-12), None)
     n = len(rows)
     total, square = sum(per_ue_sum), sum(x * x for x in per_ue_sum)
@@ -214,7 +214,32 @@ def validate_rates(row):
     return utility
 
 
-def validate(root, *, require_complete=False, check_manifest=True):
+def legacy_shadow_metrics(rows, corrected):
+    """Reproduce only the three diagnostics affected by the historical UE-index leak.
+
+    This verifies old stored summaries without changing their evidence. It never
+    supplies analysis values: those always come from aggregate_episode(rows).
+    """
+    route, net, oracle = [], [], []
+    for row in rows:
+        if "shadow" not in row:
+            continue
+        shadow = row["shadow"]
+        demands = row["service"]["ue_demand_mbps"]
+        last_ue_index = len(demands) - 1
+        route.append(last_ue_index - rate_utility(shadow["same_access_direct"], demands))
+        net.append(last_ue_index - rate_utility(shadow["all_access"], demands))
+        if "role_enumeration" in shadow:
+            oracle.append(max(r["utility"] for r in shadow["role_enumeration"]) - last_ue_index)
+    result = dict(corrected)
+    for key, values in (("route_gain", route), ("net_role_gain", net), ("oracle_headroom", oracle)):
+        result[key] = statistics.fmean(values) if values else None
+    return result
+
+
+def validate(
+    root, *, require_complete=False, check_manifest=True, allow_legacy_shadow_metrics=False
+):
     root = Path(root)
     if check_manifest and (root / "SHA256SUMS.json").exists():
         sums = read_json(root / "SHA256SUMS.json")
@@ -236,7 +261,7 @@ def validate(root, *, require_complete=False, check_manifest=True):
         assert registry["status"] == "complete", "experiment incomplete"
     exogenous, initial, run_rows, val_rows = {}, {}, [], []
     residual_pairs, train_exogenous, physics_hashes = {}, {}, set()
-    total_updates = total_train = total_eval = 0
+    total_updates = total_train = total_eval = legacy_packets = 0
     for name in sorted(expected):
         entry = registry["runs"][name]
         if registry["status"] == "complete":
@@ -374,9 +399,11 @@ def validate(root, *, require_complete=False, check_manifest=True):
                     )
                     exogenous[key] = digest
                 result = aggregate_episode(rows, protocol["slot_s"])
-                assert canonical_hash(result) == canonical_hash(packet["metrics"]), (
-                    "trace-summary mismatch"
-                )
+                if canonical_hash(result) != canonical_hash(packet["metrics"]):
+                    assert allow_legacy_shadow_metrics and canonical_hash(
+                        legacy_shadow_metrics(rows, result)
+                    ) == canonical_hash(packet["metrics"]), "trace-summary mismatch"
+                    legacy_packets += 1
                 values.append(result["utility"])
                 val_rows.append(
                     dict(run=name, arm=arm, seed=seed, step=step, scenario=scenario, **result)
@@ -409,6 +436,7 @@ def validate(root, *, require_complete=False, check_manifest=True):
         validation_slots=total_eval,
         validated_runs=len(run_rows),
         exogenous_hashes_matched=len(exogenous),
+        legacy_shadow_metric_packets=legacy_packets,
         runs=run_rows,
         validation=val_rows,
     )
@@ -422,10 +450,22 @@ def write_csv(path, rows, fields):
         writer.writerows(rows)
 
 
-def analyze(root, output=None, *, require_complete=False, check_manifest=True):
+def analyze(
+    root,
+    output=None,
+    *,
+    require_complete=False,
+    check_manifest=True,
+    allow_legacy_shadow_metrics=False,
+):
     root = Path(root)
     output = Path(output) if output else root / "analysis"
-    result = validate(root, require_complete=require_complete, check_manifest=check_manifest)
+    result = validate(
+        root,
+        require_complete=require_complete,
+        check_manifest=check_manifest,
+        allow_legacy_shadow_metrics=allow_legacy_shadow_metrics,
+    )
     output.mkdir(parents=True, exist_ok=True)
     rows = result.pop("validation")
     effects, paired = [], []
@@ -552,6 +592,13 @@ def analyze(root, output=None, *, require_complete=False, check_manifest=True):
         "Shadow role scores are instantaneous counterfactuals, not independent no-relay training.",
         "Two seeds support pilot observations only. No final test or statistical significance claim.",
     ]
+    if result["legacy_shadow_metric_packets"]:
+        lines += [
+            "",
+            f"Recomputed shadow diagnostics in {result['legacy_shadow_metric_packets']} historical validation packets. "
+            "Stored route_gain/net_role_gain/oracle_headroom matched the historical UE-index bug exactly; "
+            "all other stored metrics were checked unchanged. Original evidence was not modified.",
+        ]
     if result["status"] != "complete":
         lines.append(
             "Incomplete experiment: do not compare arms at unequal budgets as final effects."
@@ -566,6 +613,11 @@ def main():
     parser.add_argument("--bundle", type=Path)
     parser.add_argument("--output", type=Path, required=True)
     parser.add_argument("--require-complete", action="store_true")
+    parser.add_argument(
+        "--allow-legacy-shadow-metrics",
+        action="store_true",
+        help="verify historical UE-index diagnostics and recompute them from immutable traces",
+    )
     args = parser.parse_args()
     if args.bundle:
         with tempfile.TemporaryDirectory(prefix="bs5_offline_") as tmp:
@@ -575,11 +627,21 @@ def main():
                     if not target.is_relative_to(Path(tmp).resolve()):
                         raise ValueError("unsafe ZIP path")
                 archive.extractall(tmp)
-            result = analyze(tmp, args.output, require_complete=args.require_complete)
+            result = analyze(
+                tmp,
+                args.output,
+                require_complete=args.require_complete,
+                allow_legacy_shadow_metrics=args.allow_legacy_shadow_metrics,
+            )
     else:
         if args.root is None:
             parser.error("--root or --bundle is required")
-        result = analyze(args.root, args.output, require_complete=args.require_complete)
+        result = analyze(
+            args.root,
+            args.output,
+            require_complete=args.require_complete,
+            allow_legacy_shadow_metrics=args.allow_legacy_shadow_metrics,
+        )
     print(
         json.dumps(
             {

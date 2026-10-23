@@ -1,11 +1,13 @@
 from copy import deepcopy
 import pickle
+import statistics
 
 import numpy as np
 import pytest
 import torch
 
 from scripts.analysis.bs5_bundle import (
+    aggregate_episode,
     analyze,
     atomic_json,
     load_trace,
@@ -245,6 +247,65 @@ def test_offline_bundle_rates_completeness_and_blocked_imports(tiny_bundle, tmp_
     assert result["learner_updates"] == 12
     assert (tmp_path / "learning_curves.svg").exists()
     assert offline_acceptance(tiny_bundle)["torch_env_imports_blocked"]
+
+
+def test_shadow_diagnostics_use_slot_utility_and_respect_physical_bounds(tiny_bundle):
+    for arm in ("B-N", "B-R"):
+        path = next((tiny_bundle / "runs" / f"{arm}_seed949999/evaluations/000012").glob("*.gz"))
+        rows = load_trace(path)["trace"]
+        metrics = aggregate_episode(rows)
+        assert 0 <= metrics["route_gain"] <= 1
+        assert -1 <= metrics["net_role_gain"] <= 1
+        assert -1e-12 <= metrics["oracle_headroom"] <= 1
+        if arm.endswith("N"):
+            assert metrics["route_gain"] == metrics["net_role_gain"] == 0
+        expected = statistics.fmean(
+            row["service"]["network"]["utility"] - row["shadow"]["all_access"]["utility"]
+            for row in rows
+        )
+        assert metrics["net_role_gain"] == pytest.approx(expected, abs=1e-14)
+
+
+def test_legacy_shadow_import_requires_opt_in_and_rejects_other_corruption(tiny_bundle):
+    path = next((tiny_bundle / "runs").glob("*/evaluations/000000/*.json.gz"))
+    original = load_trace(path)
+    legacy = deepcopy(original)
+    rows = legacy["trace"]
+    legacy["metrics"]["route_gain"] = statistics.fmean(
+        len(r["service"]["ue_demand_mbps"]) - 1 - r["shadow"]["same_access_direct"]["utility"]
+        for r in rows
+    )
+    legacy["metrics"]["net_role_gain"] = statistics.fmean(
+        len(r["service"]["ue_demand_mbps"]) - 1 - r["shadow"]["all_access"]["utility"] for r in rows
+    )
+    legacy["metrics"]["oracle_headroom"] = statistics.fmean(
+        max(v["utility"] for v in r["shadow"]["role_enumeration"])
+        - (len(r["service"]["ue_demand_mbps"]) - 1)
+        for r in rows
+        if "role_enumeration" in r["shadow"]
+    )
+    try:
+        write_trace(path, legacy)
+        with pytest.raises(AssertionError, match="trace-summary mismatch"):
+            validate(tiny_bundle)
+        result = validate(tiny_bundle, allow_legacy_shadow_metrics=True)
+        assert result["legacy_shadow_metric_packets"] == 1
+        selected = next(
+            r
+            for r in result["validation"]
+            if r["run"] == path.parents[2].name
+            and r["step"] == 0
+            and r["scenario"] == int(path.name.split(".")[0])
+        )
+        assert selected["route_gain"] == original["metrics"]["route_gain"]
+        for metric in ("throughput_mbps", "route_gain"):
+            corrupted = deepcopy(legacy)
+            corrupted["metrics"][metric] += 0.1
+            write_trace(path, corrupted)
+            with pytest.raises(AssertionError, match="trace-summary mismatch"):
+                validate(tiny_bundle, allow_legacy_shadow_metrics=True)
+    finally:
+        write_trace(path, original)
 
 
 def test_validator_detects_missing_run_bad_rates_and_duplicate_resume_updates(tiny_bundle):
