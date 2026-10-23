@@ -279,7 +279,7 @@ class V4FixedMobileBatteryEnv:
             "num_relay": int(np.sum((self.roles == RELAY) & (self.status == ACTIVE))),
             "active_count": int(np.sum(self.status == ACTIVE)),
             "status": self.status.astype(int).tolist(),
-            "status_names": [STATUS_NAMES[int(x)] for x in self.status],
+            "status_names": [self._status_name(x) for x in self.status],
             "battery": self.battery.astype(float).tolist(),
             "roles": self.roles.astype(int).tolist(),
             "uav_positions": self.uav_positions.astype(int).tolist(),
@@ -303,6 +303,10 @@ class V4FixedMobileBatteryEnv:
             "truncated": truncated,
             "info": info,
         }
+
+    def _status_name(self, status):
+        """Display hook; versioned wrappers may add unavailable status codes."""
+        return STATUS_NAMES[int(status)]
 
     # ------------------------------ network model -----------------------------
 
