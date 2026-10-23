@@ -1,5 +1,9 @@
 # UAV Thesis
 
+Pilot curriculum BS5, lịch cố định 3k/3k/6k/12k: xem
+[spec và lệnh chạy](scripts/training/README_bs5_curriculum.md),
+[notebook Kaggle](scripts/notebooks/bs5_curriculum_kaggle.ipynb).
+
 Pilot A/B launch, BS5 cố định: xem [hướng dẫn chạy](scripts/training/README_bs5_launch_ab.md).
 Chạy trên Kaggle: dùng [notebook 4 cell](scripts/notebooks/bs5_launch_ab_kaggle.ipynb)
 hoặc [sao chép các cell](scripts/notebooks/README.md). Dataset tự giải nén ZIP;
