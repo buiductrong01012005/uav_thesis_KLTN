@@ -1,0 +1,16 @@
+{
+  "version": "bs5_direct_replay_reset_v1",
+  "baseline": "configs/bs5_direct_replay_reset_baseline_v2.json",
+  "display_arm": "D-R-reset",
+  "allow_relay": true,
+  "training_mode": "direct",
+  "variant": "replay_reset",
+  "training_seeds": [551, 552],
+  "steps_per_run": 24000,
+  "reset_steps": [3000, 4500, 6000, 7500, 9000, 10500],
+  "common_evaluation_steps": [0, 3000, 6000, 9000, 12000, 15000, 18000, 21000, 24000],
+  "export_policy": "per-run",
+  "device": "cuda",
+  "torch_threads": 1,
+  "runtime_safety_factor": 1.5
+}

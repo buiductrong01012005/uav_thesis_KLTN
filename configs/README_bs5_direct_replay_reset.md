@@ -1,0 +1,19 @@
+# BS5 D-R-reset v1
+
+Runner/analyzer riêng; không sửa defaults/pipeline curriculum cũ. Hai main runs scratch: seed551/552, 24.000 steps/run. Full task D-R từ step0: 5 UAV, launchB, fixedBS5, lifecycle/mobility/battery, 10 Cartesian actions, Relay explicit true. Giữ nguyên toàn bộ `src/` so source lịch sử `9160a8f5a977f0ecbfc75d68e86c6fed0204cb07af77964898bb35d5a31c8ec2`.
+
+`bs5_direct_replay_reset_baseline_v2.json` là compact import có SHA từng member gốc: resolved protocol CUDA, meta/hash khởi tạo C-R/D-R, 360 eval episodes ở 9 mốc common, exogenous150slots của 10 eval scenarios, residual mọi train episode và exogenous của train traces D-R đã lưu. Bản v1 là reference trung gian trước khi bổ sung train pairing; config dùng v2. Baseline performance là bảng cached đã hash-check, không giả rằng bundle mới chứa toàn bộ raw lịch sử. Raw cũ đã được audit riêng, không bị sửa.
+
+Replay clear sau episode tại 3k/4.5k/6k/7.5k/9k/10.5k, không tại12k. Buffer mới seed+20000+k, giữ network/targets/Adam/LR/exploration/globalepsilon/targetschedule. Expected updates được tính từ warmup1000, batch64, updateevery4: 501/126/126/126/126/126/3126 =4.257/run. Không bù updates. Eval đúng0/3k/6k/9k/12k/15k/18k/21k/24k ×10scenarios ×150slots, tổng27.000slots. Không gates/fixtures/stage validation/retention.
+
+Reset checkpoint trước clear, sau đó checkpoint ngay sau clear. Applied marker/lineage nằm trong resume atomic; resume state là authoritative nếu crash giữa thay resume và commit JSON. Episode/update/event/trace packets immutable, atomic và có byte checksum/index ngay khi ghi. Final audit recompute bytes và metrics từ raw rates, không tin cached hashes. Source/config được khóa khi prepare, initial weights bắt buộc khớp historical cùng seed trước main rollout. Không warm-start historical weights.
+
+Train traces: first scenario, periodic10episodes, first sau mỗi clear. Eval giữ đủ service snapshot sau movement trước energy/mobility, actual/same-access-direct/all-access rates, oracle diagnostic slots1/76. Reward/radio/router/learner không đổi. Throughput360×utility không độc lập. Empty Relay denominator là active Relay UAV-slot; Jain từ per-UE episode-mean. Primary last24k; best chỉ9mốc, tail18k/21k/24k; AUC trapezoid cùngcadence. Hai seeds là pilot trên validation đã xem.
+
+Timing dùng phase outer không chồng: setup/train_loop/eval/persistence/analysis/export/other, CUDA synchronize tại biên phase. Update là child train; shadow/oracle record là child eval. Packet logging/hash nằm trong parentloop. Mỗi invocation có timer riêng, không rollback timer theo checkpoint, không cộng notebook idle; process start từ module entry trước NumPy/Torch import cho CLI. Final write/teardown nằm ngoài cutoff đã công bố. `latest.json` gồm completed timing cho export/review; review chứa receipt sau audit/repro compression (review nhỏ và final receipt nằm sau cutoff này). Không quy phần dư runtime lịch sử cho ZIP khi thiếu bằng chứng.
+
+Bundles tên snapshot duy nhất: audit_light có raw mới + baseline compact + standalone analyzer; repro_full gồm frozen source, mọi inference checkpoint đã commit và latest optimizer/replay/RNG resumable state, companion hash audit; review bỏ raw/weights, có report/tables/curves/reset/timer summary. Chạy offline bằng stdlib, không cần torch/env/checkpoint. Export không nén lại gzip/sourceZIP; temp+atomic replace, CRC/hash/member-set kiểm lại. Default per-run, final/manual tùy chọn, exception không tự rebuild ZIP nặng.
+
+Kaggle: [bốn cells và cách resume](../scripts/notebooks/BS5_DR_RESET_KAGGLE.md).
+
+Nếu export khi mới commit ở mốc reset không có eval (ví dụ4.5k), `steps` vẫn là số train steps đã commit; `last_evaluation_step` là mốc common gần nhất (3k). So last/tail/best và AUC chỉ dùng các mốc common đã có; AUC chuẩn hóa đến mốc common cuối. Partial không được nhận là complete. Crash ngay trước commit có thể mất tối đa3.000 collected steps; chi phí eval chưa commit cũng có thể phải chạy lại.
