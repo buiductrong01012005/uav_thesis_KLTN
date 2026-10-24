@@ -1,5 +1,10 @@
 # UAV Thesis
 
+D-R-reset (hai seed 551/552, full task + sáu replay resets):
+[spec/config](configs/README_bs5_direct_replay_reset.md),
+[notebook Kaggle](scripts/notebooks/bs5_direct_replay_reset_kaggle.ipynb),
+[bốn cell để copy và hướng dẫn resume](scripts/notebooks/BS5_DR_RESET_KAGGLE.md).
+
 Pilot curriculum BS5, lịch cố định 3k/3k/6k/12k: xem
 [spec và lệnh chạy](scripts/training/README_bs5_curriculum.md),
 [notebook Kaggle](scripts/notebooks/bs5_curriculum_kaggle.ipynb).
@@ -78,3 +83,16 @@ Xem [danh mục script](scripts/README.md). Các lệnh cũ dạng `scripts/<tê
 Tài liệu nghiên cứu nằm trong `docs/`; bảng và hình đã xuất nằm trong `reports/`. Các file mới hoặc vừa di chuyển vào hai thư mục này được giữ cục bộ theo `.gitignore`, nên không có trong bản clone mới. Các tài liệu đã được Git theo dõi trước đó vẫn được giữ nguyên.
 
 Hướng dẫn `README_RUN.md` cũ và manifest đóng gói được lưu cục bộ trong `docs/archive/`; một số entry point trong đó không có trong repo hiện tại. Chọn giao thức thí nghiệm theo tài liệu nghiên cứu tương ứng.
+
+Hướng dẫn nối BS5 curriculum từ full state24k tới tổng60k (chỉ C-R/C-N, seeds551/552):
+[Windows/Kaggle](scripts/notebooks/BS5_CURRICULUM_EXTEND_60K_KAGGLE.md) và
+[notebook Kaggle](scripts/notebooks/bs5_curriculum_extend_60k_kaggle.ipynb).
+Runner kiểm đủ bốn full resume states trước rollout; audit_light hoặc weights-only không đủ để continuation.
+
+Khi không có full states24k, dùng [BS5 fresh0→60k](scripts/notebooks/BS5_CURRICULUM_FRESH_60K_KAGGLE.md): train mới4 runs, không yêu cầu parent và không ghép kết quả lịch sử.
+
+## BS5 continuous evaluation600
+
+Frozen-policy diagnostic, not training. See [Kaggle guide](scripts/notebooks/BS5_CONTINUOUS_EVAL600_KAGGLE.md). Requires the four exact best fresh60k checkpoints and full audit/repro provenance. Main24000 + controls1200; no budget increase.
+
+Khi thiếu weights và đã cho phép train mới, dùng [một Dataset + notebook train→eval600](scripts/notebooks/BS5_RETRAIN_EVAL600_KAGGLE.md): chỉ upload ZIP nguồn, chạy mới bốn runs60k rồi tự khóa best và eval600. ZIP kết quả gồm cả audit và repro có weights; đây là lượt chạy mới, không thay checkpoint lịch sử.
