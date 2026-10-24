@@ -1,0 +1,15 @@
+{
+  "version": "bs5_curriculum_fresh_60k_v1",
+  "origin": "fresh_0_to_60k_v1",
+  "arms": ["C-R", "C-N"],
+  "training_seeds": [551, 552],
+  "prefix_steps": 24000,
+  "total_steps": 60000,
+  "stage_ends": [3000, 6000, 12000, 60000],
+  "expected_prefix_updates": 4257,
+  "expected_final_updates": 13257,
+  "scope": "fresh_training_validation_pilot_n2_not_historical_continuation",
+  "runtime_policy": "freeze actual initialization runtime; no historical Torch2.11 requirement for fresh runs",
+  "budget": {"new_training_steps": 240000, "historical_imported_steps": 0},
+  "schedule_policy": "original 160-episode schedule then extension suffix stream v1"
+}

@@ -414,7 +414,18 @@ def archive_uncommitted(output, commit):
             path.rename(target)
 
 
-def run_one(root, p, registry, arm, seed, *, resume=False, export=True, stop_after=None):
+def run_one(
+    root,
+    p,
+    registry,
+    arm,
+    seed,
+    *,
+    resume=False,
+    export=True,
+    stop_after=None,
+    final_stage_diagnostics=True,
+):
     name = f"{arm}_seed{seed}"
     if registry["runs"][name]["status"] == "complete":
         return
@@ -678,7 +689,9 @@ def run_one(root, p, registry, arm, seed, *, resume=False, export=True, stop_aft
                 commit["shadow_seconds"] += ev["shadow_logging_s"]
                 if ev["eligible_for_best"] and ev["utility"] > commit["best_utility"]:
                     commit.update(best_step=step, best_utility=ev["utility"])
-                if arm.startswith("C") and (c["stage"] != "S4" or step == p["steps_per_run"]):
+                if arm.startswith("C") and (
+                    c["stage"] != "S4" or (final_stage_diagnostics and step == p["steps_per_run"])
+                ):
                     gate = evaluate(
                         learner, p, output, arm, seed, step, condition=c, label="current"
                     )
@@ -708,11 +721,10 @@ def run_one(root, p, registry, arm, seed, *, resume=False, export=True, stop_aft
                     )
                     commit["gate_history"].append(gate_event)
                     event("gate_diagnostic", **gate_event)
-                if arm.startswith("C") and step in {
-                    p["stage_ends"][1],
-                    p["stage_ends"][2],
-                    p["steps_per_run"],
-                }:
+                retention_steps = {p["stage_ends"][1], p["stage_ends"][2]}
+                if final_stage_diagnostics:
+                    retention_steps.add(p["steps_per_run"])
+                if arm.startswith("C") and step in retention_steps:
                     retention = evaluate(
                         learner,
                         p,
