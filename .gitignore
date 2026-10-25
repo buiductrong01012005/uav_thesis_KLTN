@@ -1,6 +1,7 @@
 __pycache__/
 .pytest_cache/
 *.pyc
+*.pyo
 .venv/
 results/
 checkpoints/
@@ -9,6 +10,8 @@ final_results_figures_tables
 uav_all_policies_figures
 ĐẠI HỌC QUỐC GIA HÀ NỘI.docx
 .ruff_cache/
+.mypy_cache/
 docs
 reports
 AGENTS.md
+archive/
