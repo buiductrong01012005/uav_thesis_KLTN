@@ -1,0 +1,17 @@
+{
+  "version": "bs5_crcn_return_v3_pair_v1",
+  "training_seed": 551,
+  "cn_training_steps": 60000,
+  "cn_validation_steps": 72000,
+  "evaluation_horizon": 10000,
+  "seen_scenarios": [130001,130002,130003,130004,130005,130006,130007,130008,130009,130010],
+  "heldout_scenarios": [190001,190002,190003,190004,190005,190006,190007,190008,190009,190010],
+  "paired_evaluation_steps": 400000,
+  "device": "cpu",
+  "torch_threads": 1,
+  "preflight_caps": {"diagnostic_train":512,"control_eval":4096},
+  "prefix_rate_atol": 0.000001,
+  "prefix_rate_rtol": 0.0000001,
+  "automatic_training_extension": false,
+  "scope": "one_seed_matched_recipe_Relay_ablation; seen stress and newly locked test traces reported separately"
+}
