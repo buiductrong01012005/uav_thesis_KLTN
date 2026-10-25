@@ -71,7 +71,7 @@ def verify_manifest(root):
             assert file_hash(safe(root, rel)) == digest, f"hash mismatch: {rel}"
 
 
-def gateway_auditor(config):
+def gateway_auditor(config, *, require_exclusion_flag=True):
     """Independent stdlib check of gateway capacities; BS5 is never a candidate.
 
     Mirrors the locked radio equations as an audit, not an environment import.
@@ -115,7 +115,8 @@ def gateway_auditor(config):
 
     def check(row):
         snap = row["service"]
-        assert row["failed_bs_gateway_excluded"] is True
+        if require_exclusion_flag or "failed_bs_gateway_excluded" in row:
+            assert row["failed_bs_gateway_excluded"] is True
         networks = [snap["network"]] + [
             row["shadow"][k]
             for k in ("actual", "same_access_direct", "all_access")

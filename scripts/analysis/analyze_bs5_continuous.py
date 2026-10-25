@@ -3,6 +3,7 @@
 from __future__ import annotations
 
 import argparse
+import hashlib
 import json
 import math
 from pathlib import Path
@@ -73,13 +74,134 @@ def safe(root, rel):
     return path
 
 
-def read_rows(root, index):
+class EvidenceTransport:
+    """Read extracted containers explicitly; never claim their old byte hashes pass."""
+
+    def __init__(self, root, *, allow_extracted=False, locked=None):
+        self.root = Path(root).resolve()
+        self.allow_extracted = allow_extracted
+        self.locked = locked or {}
+        self.unverified = {}
+
+    def record(self, logical, actual, expected, kind, **extra):
+        self.unverified[logical] = dict(
+            logical_path=logical,
+            original_sha256=expected,
+            original_container_hash_verified=False,
+            kind=kind,
+            available_path=actual.relative_to(self.root).as_posix(),
+            available_sha256=file_hash(actual) if actual.is_file() else None,
+            **extra,
+        )
+
+    def checked(self, logical, expected=None):
+        expected = expected or self.locked.get(logical)
+        original = safe(self.root, logical)
+        if original.is_file():
+            assert expected is None or file_hash(original) == expected, f"corrupt file: {logical}"
+            return original
+        if self.allow_extracted and logical.endswith(".json.gz"):
+            plain = original.with_suffix("")
+            options = (
+                plain,
+                original / plain.name,
+                plain / plain.name,
+                original.parent / original.name.removesuffix(".json.gz"),
+            )
+            present = list(dict.fromkeys(p for p in options if p.is_file()))
+            if present:
+                assert all(file_hash(p) == file_hash(present[0]) for p in present), (
+                    f"ambiguous extracted JSON: {logical}"
+                )
+                actual = present[0]
+                payload = read_json(actual)
+                self.record(
+                    logical,
+                    actual,
+                    expected,
+                    "extracted_json",
+                    available_json_sha256=canonical_hash(payload),
+                )
+                return actual
+        raise FileNotFoundError(f"Missing original and extracted representation: {original}")
+
+    def trace(self, logical, expected=None):
+        path = self.checked(logical, expected)
+        return load_trace(path) if path.name.endswith(".gz") else read_json(path)
+
+    def verify_locked(self):
+        missing = []
+        for logical, digest in self.locked.items():
+            if (
+                self.allow_extracted
+                and logical == "references/training_source_snapshot.zip"
+                and not safe(self.root, logical).is_file()
+            ):
+                continue  # Code identity is checked against every file below.
+            try:
+                self.checked(logical, digest)
+            except FileNotFoundError:
+                missing.append(logical)
+        if missing:
+            raise FileNotFoundError(
+                f"Missing saved evidence (neither original nor extracted JSON): {missing}"
+            )
+
+    def source(self, logical, identity, *, fallback=None):
+        original = safe(self.root, logical)
+        if original.is_file():
+            choices = [original]
+        elif self.allow_extracted:
+            choices = [original.with_suffix("") / "uav_thesis", original / "uav_thesis"]
+            if fallback:
+                choices.append(safe(self.root, fallback))
+        else:
+            choices = []
+        for candidate in choices:
+            try:
+                if candidate.is_file():
+                    with zipfile.ZipFile(candidate) as archive:
+                        matches = all(
+                            hashlib.sha256(archive.read("uav_thesis/" + rel)).hexdigest() == digest
+                            for rel, digest in identity["files"].items()
+                        )
+                elif candidate.is_dir():
+                    matches = all(
+                        file_hash(candidate / rel) == digest
+                        for rel, digest in identity["files"].items()
+                    )
+                else:
+                    continue
+            except (OSError, KeyError, zipfile.BadZipFile):
+                matches = False
+            if matches:
+                if not original.is_file():
+                    self.record(
+                        logical,
+                        candidate,
+                        self.locked.get(logical),
+                        "source_container_missing",
+                        source_file_identity_verified=True,
+                        frozen_source_sha256=identity["sha256"],
+                    )
+                return
+            if candidate == original:
+                raise AssertionError(f"source bytes mismatch: {logical}")
+        raise FileNotFoundError(f"Missing matching source representation: {logical}")
+
+
+def read_rows(root, index, *, transport=None):
     rows = []
     assert len(index) == len({i["path"] for i in index}), "duplicate chunk"
     for item in index:
-        path = safe(root, item["path"])
-        assert path.is_file() and file_hash(path) == item["sha256"], f"corrupt/missing chunk {path}"
-        data = load_trace(path)
+        if transport is None:
+            path = safe(root, item["path"])
+            assert path.is_file() and file_hash(path) == item["sha256"], (
+                f"corrupt/missing chunk {path}"
+            )
+            data = load_trace(path)
+        else:
+            data = transport.trace(item["path"], item["sha256"])
         assert isinstance(data, list) and len(data) == item["slots"]
         rows.extend(data)
     return rows
@@ -88,7 +210,10 @@ def read_rows(root, index):
 def validate_rows(rows, *, name, scenario, config, horizon=600, length=600):
     assert [r["slot"] for r in rows] == list(range(1, length + 1)), "missing/duplicate slot"
     assert 0 < length <= horizon
-    checker = gateway_auditor(config)
+    # Continuous step_record does not include the legacy training metadata flag.
+    # Surviving BS IDs are checked below; the independent capacity equations still
+    # exclude BS5 for every actual/shadow network. Do not modify archived rows.
+    checker = gateway_auditor(config, require_exclusion_flag=False)
     classify = geometry_classifier(
         config["grid_size"],
         config["cell_size_m"],
@@ -313,7 +438,7 @@ def validate_retraining_provenance(root, p, selection, training_p):
     return budget
 
 
-def analyze(root, output, *, require_complete=False):
+def analyze(root, output, *, require_complete=False, allow_extracted_containers=False):
     root, output = Path(root).resolve(), Path(output).resolve()
     assert not output.is_relative_to(root), "analysis must be outside immutable evidence"
     verify_manifest(root)
@@ -323,6 +448,10 @@ def analyze(root, output, *, require_complete=False):
     )
     check_contract(p)
     assert registry["protocol_sha256"] == canonical_hash(p)
+    transport = EvidenceTransport(
+        root, allow_extracted=allow_extracted_containers, locked=p["evidence_files"]
+    )
+    transport.verify_locked()
     assert set(registry["trajectories"]) == expected_keys()
     assert p["checkpoint_selection_sha256"] == canonical_hash(selection)
     assert selection["status"] == "READY" and set(selection["models"]) == set(MODELS)
@@ -348,32 +477,25 @@ def analyze(root, output, *, require_complete=False):
         assert file_hash(root / "references" / name / "commit.json") == m["commit_sha256"]
         assert canonical_hash(m["resolved_config"]) == m["config_sha256"]
         reference_mean = statistics.fmean(
-            episode_metrics(load_trace(root / "references" / name / f"{s}.json.gz")["trace"])[
-                "utility"
-            ]
+            episode_metrics(transport.trace(f"references/{name}/{s}.json.gz")["trace"])["utility"]
             for s in SCENARIOS
         )
         assert math.isclose(reference_mean, utility, rel_tol=1e-10, abs_tol=1e-10)
-    for ref, digest in p["evidence_files"].items():
-        assert file_hash(safe(root, ref)) == digest, ref
     identity = read_json(root / "source_identity.json")
-    import hashlib
-
-    with zipfile.ZipFile(root / "source_snapshot.zip") as source:
-        assert identity["sha256"] == canonical_hash(identity["files"]) == p["eval_source_sha256"]
-        for rel, digest in identity["files"].items():
-            assert hashlib.sha256(source.read("uav_thesis/" + rel)).hexdigest() == digest
+    assert identity["sha256"] == canonical_hash(identity["files"]) == p["eval_source_sha256"]
+    transport.source("source_snapshot.zip", identity)
     training_identity = read_json(root / "references/training_source_identity.json")
     assert (
         training_identity["sha256"]
         == canonical_hash(training_identity["files"])
         == training_p["source_sha256"]
     )
-    with zipfile.ZipFile(root / "references/training_source_snapshot.zip") as source:
-        for rel, digest in training_identity["files"].items():
-            assert hashlib.sha256(source.read("uav_thesis/" + rel)).hexdigest() == digest
-            if rel.startswith("src/"):
-                assert identity["files"][rel] == digest, "scientific source changed"
+    transport.source(
+        "references/training_source_snapshot.zip", training_identity, fallback="source_snapshot.zip"
+    )
+    for rel, digest in training_identity["files"].items():
+        if rel.startswith("src/"):
+            assert identity["files"][rel] == digest, "scientific source changed"
     ledger = read_json(root / "budget_ledger.json")
     charged, executed = validate_ledger(ledger)
     if require_complete:
@@ -390,7 +512,7 @@ def analyze(root, output, *, require_complete=False):
         assert controls["status"] == "complete"
     control_rows = {}
     for key, item in controls["runs"].items():
-        rows = read_rows(root, item["chunks"])
+        rows = read_rows(root, item["chunks"], transport=transport)
         name = item["model"]
         validate_rows(
             rows,
@@ -445,8 +567,11 @@ def analyze(root, output, *, require_complete=False):
         assert receipt["checkpoint_before"] == receipt["checkpoint_after"] == model["file_sha256"]
         assert receipt["training_steps"] == receipt["optimizer_updates"] == 0
         assert receipt["source_before"] == receipt["source_after"] == p["eval_source_sha256"]
-        rows = read_rows(root, receipt["chunks"])
-        raw_files.update(c["path"] for c in receipt["chunks"])
+        rows = read_rows(root, receipt["chunks"], transport=transport)
+        raw_files.update(
+            transport.checked(c["path"], c["sha256"]).relative_to(root).as_posix()
+            for c in receipt["chunks"]
+        )
         validate_rows(rows, name=name, scenario=scenario, config=model["resolved_config"])
         initial = receipt["initial"]
         compare(
@@ -463,7 +588,7 @@ def analyze(root, output, *, require_complete=False):
         reset = {k: initial[k] for k in ("positions", "battery", "residual_uav", "ue_positions")}
         assert scenario not in reset_pairs or reset_pairs[scenario] == reset
         reset_pairs[scenario] = reset
-        ref = load_trace(root / "references" / name / f"{scenario}.json.gz")
+        ref = transport.trace(f"references/{name}/{scenario}.json.gz")
         for idx, r in enumerate(rows):
             pair = scenario, r["slot"]
             assert pair not in exogenous or exogenous[pair] == r["exogenous_sha256"], (
@@ -505,7 +630,17 @@ def analyze(root, output, *, require_complete=False):
     if require_complete:
         assert len(trajectory) == 40 and len(timeseries) == 24000
     # Refuse unindexed extra/duplicate raw packets, including partial ones in a complete bundle.
-    actual = {f.relative_to(root).as_posix() for f in (root / "trajectories").rglob("*.json.gz")}
+    actual = {
+        f.relative_to(root).as_posix()
+        for f in (root / "trajectories").rglob("*.json.gz")
+        if f.is_file()
+    }
+    if allow_extracted_containers:
+        actual.update(
+            f.relative_to(root).as_posix()
+            for f in (root / "trajectories").rglob("*")
+            if f.is_file() and f.name.startswith("slots_")
+        )
     assert actual == raw_files, "extra/uncommitted raw packets"
     output.mkdir(parents=True, exist_ok=True)
     paired, aggregate = [], []
@@ -705,9 +840,15 @@ def analyze(root, output, *, require_complete=False):
                 xlabel="EVALUATION SLOT (WINDOW CENTERS)",
                 footnote="PAIRED SAME SCENARIO; ONE TRAINING SEED; NOT INDEPENDENT TRAINING REPLICATIONS",
             )
+    content_passed = bool(require_complete and len(trajectory) == 40)
     verification = dict(
-        accepted=bool(require_complete and len(trajectory) == 40),
-        status="PASS" if require_complete else "INCOMPLETE",
+        accepted=bool(content_passed and not transport.unverified),
+        content_checks_passed=content_passed,
+        original_container_hashes_verified=not transport.unverified,
+        unverifiable_original_containers=list(transport.unverified.values()),
+        status=("CONTENT_ONLY" if transport.unverified else "PASS")
+        if require_complete
+        else "INCOMPLETE",
         trajectories=len(trajectory),
         raw_steps=len(timeseries),
         charged_steps=charged,
@@ -720,6 +861,14 @@ def analyze(root, output, *, require_complete=False):
         scope="integrity PASS is separate from lifecycle coverage; n=2; no unseen/convergence claim",
     )
     atomic_json(output / "verification.json", verification)
+    atomic_json(
+        output / "transport_integrity.json",
+        dict(
+            allow_extracted_containers=allow_extracted_containers,
+            original_container_hashes_verified=not transport.unverified,
+            unverifiable_original_containers=list(transport.unverified.values()),
+        ),
+    )
     report = [
         "# BS5 continuous600 — báo cáo",
         "",
@@ -728,6 +877,12 @@ def analyze(root, output, *, require_complete=False):
         "Return/Charge/rejoin tự động. Useful service chỉ tính từ slot sau rejoin. Nhóm Relay rỗng là bối cảnh quan sát, chưa chứng minh nguyên nhân.",
         "",
     ]
+    if transport.unverified:
+        report += [
+            f"CẢNH BÁO: {len(transport.unverified)} container gốc không còn; đọc bản giải nén/đối chiếu source identity. Không xác minh được hash byte ZIP/GZIP gốc; accepted=False, đây là phân tích CONTENT_ONLY, không phải integrity PASS.",
+            "Kiểm tra slot, rate/capacity, budget, prefix parity và lifecycle vẫn giữ nguyên. Chi tiết từng file: transport_integrity.json.",
+            "",
+        ]
     if retraining_budget:
         report += [
             "Weights từ lượt train mới được cho phép; không phải checkpoint lịch sử.",
@@ -762,10 +917,17 @@ def main():
     parser.add_argument("input", type=Path)
     parser.add_argument("--output", type=Path, required=True)
     parser.add_argument("--require-complete", action="store_true")
+    parser.add_argument("--allow-extracted-containers", action="store_true")
     args = parser.parse_args()
     print(
         json.dumps(
-            analyze(args.input, args.output, require_complete=args.require_complete), indent=2
+            analyze(
+                args.input,
+                args.output,
+                require_complete=args.require_complete,
+                allow_extracted_containers=args.allow_extracted_containers,
+            ),
+            indent=2,
         )
     )
 

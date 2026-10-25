@@ -115,6 +115,55 @@ def test_raw_validator_missing_duplicate_corrupt_and_no_relay_masks():
         validate_rows(bad, name="C-N_seed551", scenario=130001, config=cfg, horizon=150, length=150)
 
 
+def test_continuous_rows_without_legacy_flag_still_audit_failed_bs_capacities():
+    from scripts.analysis.analyze_bs5_curriculum_extend import gateway_auditor
+
+    cfg = json.loads((FIXTURES / "bs5_continuous_meta.json").read_text())["resolved_config"]
+    rows = adapted_reference()
+    for row in rows:
+        row.pop("failed_bs_gateway_excluded", None)
+    before = deepcopy(rows)
+    validate_rows(rows, name="C-R_seed551", scenario=130001, config=cfg, horizon=150, length=150)
+    assert rows == before, "reader must not fabricate metadata or change raw evidence"
+    # Legacy training validation remains strict about its own schema.
+    with pytest.raises(KeyError, match="failed_bs_gateway_excluded"):
+        gateway_auditor(cfg)(rows[0])
+    bad = deepcopy(rows)
+    caps = next(
+        r["service"]["network"]["direct_caps_mbps"]
+        for r in bad
+        if r["service"]["network"]["direct_caps_mbps"]
+    )
+    caps[next(iter(caps))] += 1.0
+    with pytest.raises(AssertionError, match="gateway capacity"):
+        validate_rows(bad, name="C-R_seed551", scenario=130001, config=cfg, horizon=150, length=150)
+    bad = deepcopy(rows)
+    bad[0]["failed_bs_gateway_excluded"] = False
+    with pytest.raises(AssertionError):
+        validate_rows(bad, name="C-R_seed551", scenario=130001, config=cfg, horizon=150, length=150)
+
+
+def test_extracted_real_reference_rows_keep_all_physical_and_continuity_checks(tmp_path):
+    from scripts.analysis.analyze_bs5_continuous import EvidenceTransport
+
+    cfg = json.loads((FIXTURES / "bs5_continuous_meta.json").read_text())["resolved_config"]
+    rows = adapted_reference()
+    for row in rows:
+        row.pop("failed_bs_gateway_excluded", None)
+    path = tmp_path / "slots_0001_0150.json"
+    path.write_text(json.dumps(rows), encoding="utf-8")
+    transport = EvidenceTransport(tmp_path, allow_extracted=True)
+    index = [dict(path="slots_0001_0150.json.gz", sha256="missing-old-container", slots=150)]
+    decoded = read_rows(tmp_path, index, transport=transport)
+    validate_rows(decoded, name="C-R_seed551", scenario=130001, config=cfg, horizon=150, length=150)
+    assert decoded == rows and transport.unverified
+    decoded[7]["env_t_after"] = 2
+    with pytest.raises(AssertionError):
+        validate_rows(
+            decoded, name="C-R_seed551", scenario=130001, config=cfg, horizon=150, length=150
+        )
+
+
 def test_lifecycle_multiple_cycles_service_next_slot_and_censoring():
     events = [(0, 1), (1, 2), (2, 0), (0, 0), (0, 1), (1, 2), (2, 0), (0, 0), (0, 1)]
     rows = []
