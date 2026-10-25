@@ -96,3 +96,16 @@ C?c t?n file ???c gi? nguy?n khi chuy?n t? `scripts/<t?n>.py` v?o nh?m b?n d??i.
 - [`verify_v4_a1_r4_setup.py`](validation/verify_v4_a1_r4_setup.py)
 - [`verify_v4_a1_relay_dropout_setup.py`](validation/verify_v4_a1_relay_dropout_setup.py)
 - [`verify_v4_a1_setup.py`](validation/verify_v4_a1_setup.py)
+
+## BS5 H1200 và Return
+
+| Nhóm | File mới |
+|---|---|
+| Huấn luyện | [`run_bs5_cr_h1200.py`](training/run_bs5_cr_h1200.py), [`collision`](training/run_bs5_cr_h1200_collision.py), [`C-R Return-v3`](training/run_bs5_cr_h1200_return.py), [`C-N Return-v3`](training/run_bs5_cn_h1200_return.py) |
+| Audit và tổng hợp | `analysis/analyze_bs5_cr_h1200*.py`, `analysis/analyze_bs5_cn_h1200_return.py`, `analysis/analyze_bs5_crcn_return_v3.py`, `analysis/bs5_return*_audit.py`, `analysis/bs5_return_v4_results.py` |
+| Chạy paired theo giao thức đã khóa | [`experiments/`](experiments/README.md): C-R/C-N Return-v3 và đánh giá Return-v4 |
+| Kiểm tra trước khi chạy | [`verification/`](verification/README.md): Return-v3, C-R/C-N và Return-v4 |
+| Notebook và bộ dựng notebook | `notebooks/bs5_cr_h1200*.ipynb`, `notebooks/bs5_crcn_return_v3_kaggle.ipynb`, `notebooks/bs5_return_v4_pair_kaggle.ipynb` và các file `build_bs5_*notebook.py` tương ứng |
+
+Giữ nguyên vị trí các entry point và bộ dựng notebook từ gói nguồn để các lệnh trong notebook tiếp tục hoạt động.
+Các checkpoint và UE tape của hai bộ chạy paired là tài sản Dataset riêng, không nằm trong ZIP mã nguồn.

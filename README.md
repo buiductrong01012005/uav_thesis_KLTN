@@ -96,3 +96,19 @@ Khi không có full states24k, dùng [BS5 fresh0→60k](scripts/notebooks/BS5_CU
 Frozen-policy diagnostic, not training. See [Kaggle guide](scripts/notebooks/BS5_CONTINUOUS_EVAL600_KAGGLE.md). Requires the four exact best fresh60k checkpoints and full audit/repro provenance. Main24000 + controls1200; no budget increase.
 
 Khi thiếu weights và đã cho phép train mới, dùng [một Dataset + notebook train→eval600](scripts/notebooks/BS5_RETRAIN_EVAL600_KAGGLE.md): chỉ upload ZIP nguồn, chạy mới bốn runs60k rồi tự khóa best và eval600. ZIP kết quả gồm cả audit và repro có weights; đây là lượt chạy mới, không thay checkpoint lịch sử.
+
+## BS5 H1200, collision và Return
+
+Các nhánh mới được giữ riêng theo phiên bản; môi trường và giao thức cũ vẫn nguyên vẹn.
+
+| Nhánh | Hướng dẫn |
+|---|---|
+| C-R H1200, train 60k | [H1200](scripts/notebooks/README_bs5_cr_h1200.md) |
+| Collision-v2 | [Collision](scripts/notebooks/README_bs5_collision_v2.md) |
+| Return-v3 | [Return](scripts/notebooks/README_bs5_return_v3.md) |
+| C-R/C-N Return-v3, paired 10k | [Đối chứng C-R/C-N](scripts/notebooks/README_bs5_crcn_return_v3.md) |
+| Return-v4, đánh giá lại checkpoint đã khóa | [Return-v4](scripts/notebooks/README_bs5_return_v4.md) |
+
+Xem [cấu trúc bộ chạy paired](scripts/experiments/README.md) và [preflight BS5](scripts/verification/README.md).
+Bản ZIP mã nguồn không chứa checkpoint, UE tape hoặc các Dataset tài sản thí nghiệm.
+Hai bộ chạy paired cần đúng Dataset được chỉ định trong hướng dẫn; các kiểm tra hash và runtime vẫn giữ nguyên.
