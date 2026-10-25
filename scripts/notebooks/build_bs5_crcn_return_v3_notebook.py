@@ -1,13 +1,19 @@
 """Build a clean, stdlib-bootstrap Kaggle notebook for the complete ablation."""
+
 from pathlib import Path
-import json,textwrap
-ROOT=Path(__file__).resolve().parents[2]
-def cell(kind,source,index):
-    d=dict(cell_type=kind,id=f'crcn-{index}',metadata={},source=textwrap.dedent(source).strip().splitlines(keepends=True))
-    if kind=='code':d.update(execution_count=None,outputs=[])
-    return d
-def build():
-    blocks=[('markdown','''
+
+if __package__:
+    from ._notebook import make_notebook, normalized_cell, write_notebook
+else:
+    from _notebook import make_notebook, normalized_cell, write_notebook
+ROOT = Path(__file__).resolve().parents[2]
+
+
+def build(output_directory=None):
+    blocks = [
+        (
+            "markdown",
+            """
     # Return-v3 — giữ C-R60k, train C-N60k và eval ghép cặp10k
 
     1. Tạo **một Kaggle Dataset mới** từ `BS5_CRCN_RETURN_V3_DATASET.zip`, Add Input.
@@ -20,8 +26,13 @@ def build():
     Eval40 game =2 policy ×(10 trace đã xem +10 trace mới khóa trước) ×10.000 =400k eval slot, một reset/game, epsilon0. UE tape chung được kiểm hash; vị trí UAV, pin và association vẫn do policy. Báo cáo seen/heldout riêng. Một training seed, cùng recipe có fixture thiên về Relay; chưa phải C-N được tối ưu mọi cách.
 
     Preflight có ledger cap512 diagnostic-train +4096 control/eval, kiểm exact-resume C-N, C-R prefix1.200 ở130001/130009, shared tape, physics và export offline. Không train lại C-R. Giữ reward, trạm sạc, Return-v3/collision-v2; không tự tăng120k.
-    ''')]
-    blocks.append(('code','''
+    """,
+        )
+    ]
+    blocks.append(
+        (
+            "code",
+            """
     from pathlib import Path
     SOURCE_PATH = None  # tự tìm Dataset; chỉ điền nếu Add Input nhiều bản của cùng gói
     RESUME_INPUT_DIR = None  # thư mục export/merged từ phiên trước; xem hướng dẫn cuối notebook
@@ -29,8 +40,13 @@ def build():
     MAX_SESSION_SECONDS = 7 * 3600  # soft limit của lệnh main, dừng ở game boundary; không phải giới hạn Kaggle
     AUTO_INSTALL_MISSING_DEPS = True  # cài runtime CPU vào thư mục riêng, không thay kernel/notebook
     RUN_MAIN = True
-    '''))
-    blocks.append(('code','''
+    """,
+        )
+    )
+    blocks.append(
+        (
+            "code",
+            """
     import os,sys,json,zipfile,hashlib,shutil,subprocess,time
     os.environ['PYTHONDONTWRITEBYTECODE']='1'
     sys.dont_write_bytecode=True
@@ -73,8 +89,13 @@ def build():
         with zipfile.ZipFile(SOURCE_PATH) as z:
             if z.read('uav_thesis/DATASET_MANIFEST.json')!=(SOURCE_ROOT/'DATASET_MANIFEST.json').read_bytes():raise RuntimeError('Dataset ZIP khác source đang dùng; giữ output, dùng working source sạch.')
     print('Dataset verified:',SOURCE_ROOT,'files:',len(manifest))
-    '''))
-    blocks.append(('code','''
+    """,
+        )
+    )
+    blocks.append(
+        (
+            "code",
+            """
     # All project computation runs in fresh subprocesses, so the kernel can keep its original NumPy/Torch.
     DEPS=WORK/'bs5_crcn_cpu_runtime'
     RUN_ENV=os.environ.copy()
@@ -97,8 +118,13 @@ def build():
             for line in proc.stdout:print(line,end='',flush=True);f.write(line);f.flush()
             return proc.wait()
     print('Backend runtime ready; device=cpu, Torch threads=1.')
-    '''))
-    blocks.append(('code','''
+    """,
+        )
+    )
+    blocks.append(
+        (
+            "code",
+            """
     # Restore only complete companion sets, preserving all ledgers/RNG/replay/raw.
     if RESUME_INPUT_DIR is not None:
         src=Path(RESUME_INPUT_DIR)
@@ -123,8 +149,13 @@ def build():
     if rc:raise RuntimeError('Preflight chưa PASS; main không chạy. Giữ receipt/log để xem lỗi; không tự xóa ledger rồi lặp compute.')
     receipt=json.loads((PREFLIGHT/'receipt.json').read_text());assert receipt['status']=='passed'
     print('Preflight PASS. Charged:',receipt['charged'])
-    '''))
-    blocks.append(('code','''
+    """,
+        )
+    )
+    blocks.append(
+        (
+            "code",
+            """
     MAIN_RETURN_CODE=0
     if RUN_MAIN:
         if not OUTPUT_ROOT.exists():
@@ -140,8 +171,13 @@ def build():
         print('Current status:',json.loads((OUTPUT_ROOT/'status.json').read_text()))
         if MAIN_RETURN_CODE:print('Main stopped with an error. Export preserved committed/partial evidence below; do not reset budgets.')
     else:print('RUN_MAIN=False: only bounded preflight ran.')
-    '''))
-    blocks.append(('code','''
+    """,
+        )
+    )
+    blocks.append(
+        (
+            "code",
+            """
     EXPORT=None
     if RUN_MAIN and (OUTPUT_ROOT/'protocol.json').exists():
         before=set(WORK.glob(OUTPUT_ROOT.name+'_export*'))
@@ -156,8 +192,13 @@ def build():
         for f in sorted(EXPORT.iterdir()):
             if f.is_file():display(FileLink(str(f)))
     if MAIN_RETURN_CODE:raise RuntimeError('Main failed; evidence was exported. Preserve all files and send status/ledger/log.')
-    '''))
-    blocks.append(('markdown','''
+    """,
+        )
+    )
+    blocks.append(
+        (
+            "markdown",
+            """
     ## Tiếp tục và đọc kết quả
 
     - `complete`: đã train C-N60k, validation72k và đủ40 game ghép cặp10k.
@@ -167,8 +208,17 @@ def build():
     - `review_small.zip` có report/bảng. `aggregate.csv` tách seen/heldout; `paired.csv` có chênh lệch từng trace; `cycles.json` giữ censoring. Mỗi phase có ledger riêng. C-N Relay-empty là N/A.
     - Analyzer mặc định kiểm hash/tape/mask/continuity/energy/endpoint, không chạy policy. `--deep-planner` thêm BFS độc lập trên từng snapshot, tốn thời gian hơn.
     - Dataset này chỉ chạy C-R/C-N. Các heuristic baseline và adapter preview là bước benchmark riêng; không dùng bảng baseline env-v1 để tuyên bố thắng ởv3.
-    '''))
-    notebook=dict(cells=[cell(kind,text,i) for i,(kind,text) in enumerate(blocks)],metadata=dict(kernelspec=dict(display_name='Python 3',language='python',name='python3'),language_info=dict(name='python',version='3')),nbformat=4,nbformat_minor=5)
-    path=ROOT/'scripts/notebooks/bs5_crcn_return_v3_kaggle.ipynb';path.write_text(json.dumps(notebook,ensure_ascii=False,indent=1))
-    return path
-if __name__=='__main__':print(build())
+    """,
+        )
+    )
+    notebook = make_notebook(
+        [normalized_cell(kind, text, f"crcn-{i}") for i, (kind, text) in enumerate(blocks)]
+    )
+    directory = (
+        Path(output_directory) if output_directory is not None else ROOT / "scripts/notebooks"
+    )
+    return write_notebook(directory / "bs5_crcn_return_v3_kaggle.ipynb", notebook)
+
+
+if __name__ == "__main__":
+    print(build())

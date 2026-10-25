@@ -109,3 +109,5 @@ C?c t?n file ???c gi? nguy?n khi chuy?n t? `scripts/<t?n>.py` v?o nh?m b?n d??i.
 
 Giữ nguyên vị trí các entry point và bộ dựng notebook từ gói nguồn để các lệnh trong notebook tiếp tục hoạt động.
 Các checkpoint và UE tape của hai bộ chạy paired là tài sản Dataset riêng, không nằm trong ZIP mã nguồn.
+
+Xem [bộ dựng notebook BS5](notebooks/README_builders.md) để dựng lại notebook, dùng API không ghi file khi import và kiểm tra đầu ra sau refactor.
