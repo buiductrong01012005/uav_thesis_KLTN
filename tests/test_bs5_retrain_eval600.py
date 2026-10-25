@@ -340,3 +340,69 @@ def test_one_dataset_notebook_prepares_then_runs_and_downloads(tmp_path, monkeyp
     exec(cells[2], namespace)
     assert len(calls) == 2 and "prepare" in calls[0] and "run" in calls[1]
     assert not any("audit_light" in str(args) or "repro_full" in str(args) for args in calls)
+
+
+@pytest.mark.parametrize("old_source", [False, True])
+def test_fresh_notebook_guards_source_and_preserves_container_bytes(tmp_path, monkeypatch, old_source):
+    nb = read_json(workflow.ROOT / "scripts/notebooks/bs5_retrain_eval600_fresh_kaggle.ipynb")
+    cells = ["".join(c["source"]) for c in nb["cells"] if c["cell_type"] == "code"]
+    source = tmp_path / "input/source/uav_thesis"
+    script = source / "scripts/evaluation/run_bs5_retrain_eval600.py"
+    script.parent.mkdir(parents=True)
+    script.write_text("# synthetic discovery")
+    for relative in (
+        "scripts/analysis/analyze_bs5_continuous.py",
+        "scripts/analysis/analyze_bs5_curriculum_extend.py",
+    ):
+        path = source / relative
+        path.parent.mkdir(parents=True, exist_ok=True)
+        path.write_bytes((workflow.ROOT / relative).read_bytes())
+    if old_source:
+        (source / "scripts/analysis/analyze_bs5_continuous.py").write_text("# old reader")
+    work = tmp_path / "working"
+    work.mkdir()
+    old = work / "bs5_retrain_eval600/old_result.json"
+    atomic_json(old, dict(preserved=True))
+    calls = []
+
+    def launch(args, **kwargs):
+        calls.append(args)
+        assert kwargs["cwd"] == source and kwargs["check"]
+        if "prepare" in args:
+            atomic_json(work / "bs5_retrain_eval600_fresh/workflow.json", dict(SYNTHETIC=True))
+
+    monkeypatch.setattr(subprocess, "run", launch)
+    monkeypatch.setattr(torch.cuda, "is_available", lambda: True)
+    monkeypatch.setattr("IPython.display.display", lambda *a: None)
+    monkeypatch.chdir(tmp_path)
+    first = cells[0].replace("'/kaggle/input'", repr(str(tmp_path / "input")))
+    first = first.replace("'/kaggle/working'", repr(str(work)))
+    namespace = {}
+    exec(first, namespace)
+    if old_source:
+        with pytest.raises(AssertionError, match="Wrong source version"):
+            exec(cells[1], namespace)
+        assert not calls
+        return
+    exec(cells[1], namespace)
+    exec(cells[1], namespace)
+    exec(cells[2], namespace)
+    assert len(calls) == 2 and "prepare" in calls[0] and "run" in calls[1]
+    package = work / "bs5_retrain_eval600_fresh_results.zip"
+    with zipfile.ZipFile(package, "x") as archive:
+        archive.writestr("SYNTHETIC_TEST_ONLY", "no real training")
+    digest = file_hash(package)
+    atomic_json(
+        namespace["OUT"] / "delivery_receipt.json",
+        dict(path=str(package), accepted=True, includes_selected_weights=True, sha256=digest),
+    )
+    exec(cells[3], namespace)
+    exec(cells[3], namespace)  # Download cell is idempotent.
+    assert read_json(old) == dict(preserved=True)
+    assert file_hash(package.with_suffix(".zip.bin")) == digest
+    metadata = read_json(package.with_name(package.stem + "_transport.json"))
+    assert metadata["original_filename"] == package.name and metadata["sha256"] == digest
+    package.with_suffix(".zip.bin").unlink()
+    package.with_suffix(".zip.bin").write_bytes(b"wrong preserved bytes")
+    with pytest.raises(AssertionError):
+        exec(cells[3], namespace)
