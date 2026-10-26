@@ -112,3 +112,84 @@ Các nhánh mới được giữ riêng theo phiên bản; môi trường và gi
 Xem [cấu trúc bộ chạy paired](scripts/experiments/README.md) và [preflight BS5](scripts/verification/README.md).
 Bản ZIP mã nguồn không chứa checkpoint, UE tape hoặc các Dataset tài sản thí nghiệm.
 Hai bộ chạy paired cần đúng Dataset được chỉ định trong hướng dẫn; các kiểm tra hash và runtime vẫn giữ nguyên.
+
+## Benchmark CPU Return-v4 đã tích hợp
+
+Code từ `BS5_RETURN_V4_BENCHMARK_CPU_DATASET.zip` nằm trong các thư mục mã nguồn
+hiện tại; không cần giải nén thêm hoặc chạy trong một repo lồng nhau.
+Bộ train và checkpoint gốc nằm tại `checkpoints/bs5_v4_training/` (không commit).
+Thông tin bàn giao gốc được giữ trong `archive/imports/bs5_return_v4_cpu_2026-10-26/`.
+Các file cũ đã refactor được giữ nguyên. Runner kiểm hash 159 file khoa học theo
+`configs/bs5_return_v4_cpu_import.json`, giữ riêng hash source lúc train và source
+repo hiện tại; không sửa protocol train, trọng số, reward hoặc thuật toán.
+Thao tác đồng bộ file resume dùng handle đọc/ghi để tương thích Windows;
+thay đổi I/O này có hash trước/sau riêng trong receipt nhập nguồn.
+
+Chạy từ gốc repo bằng PowerShell, dùng một thư mục output chưa tồn tại:
+
+```powershell
+$env:PYTHONDONTWRITEBYTECODE = '1'
+python -B scripts/evaluation/run_bs5_v4_benchmark.py prepare --training checkpoints/bs5_v4_training --output results/bs5_v4_cpu_1seed --device cpu
+python -B scripts/evaluation/run_bs5_v4_benchmark.py run --output results/bs5_v4_cpu_1seed --max-games 9 --max-seconds 86400
+python -B scripts/evaluation/run_bs5_v4_benchmark.py export --output results/bs5_v4_cpu_1seed --deep-planner
+```
+
+Lệnh trên chạy seed đánh giá đầu tiên `260001`, mỗi cấu hình 10.000 bước,
+với chín cấu hình có sẵn: C-R/C-N mỗi nhánh hai seed train 551/552,
+Random-Relay, 5A-Recovery, 4A1R-Recovery, 3A2R-Recovery và Dynamic-Recovery.
+Random-Relay chọn đều trong action mask hợp lệ, được dùng Relay. Mỗi cấu hình
+reset đúng một lần và dùng cùng UE trace; không train thêm.
+Gói mới chọn best theo validation: C-R 54k/48k, C-N 54k/36k; cả bốn đã train
+tới 60k. Đây là bộ trọng số mới, khác cặp C-R60k/C-N36k lịch sử.
+
+Output vẫn ghi kế hoạch đầy đủ 10 seed; dừng sau chín game là
+`paused_at_game_boundary`, đủ một seed để xem kết quả thử. Đọc
+`results/bs5_v4_cpu_1seed_export/analysis/games.csv` và `summary.csv`;
+giữ `benchmark_resume.zip` để audit. Một seed chưa đủ để kết luận tổng quát.
+Muốn tiếp tục, chạy lại lệnh `run` trên cùng output, không chạy lại `prepare`.
+Nếu có `partial_error`, giữ log và ledger để kiểm tra trước khi chạy tiếp.
+
+## Benchmark hiện tại: 7 thuật toán, best trong budget 120k
+
+Bộ mới từ `uav_thesis_source_2026-10-26_2(1).zip` dùng **C-R best 114k** và
+**C-N best 72k**, cùng training seed 551, chọn theo validation trong budget 120k.
+Hai weights và metadata gốc nằm trong `checkpoints/bs5_v4_best120k/`.
+Không dùng bộ best60k hoặc output 9 cấu hình ở phần trước cho benchmark này.
+
+Danh sách đúng theo ZIP mới: C-R, C-N, Random-Relay (tên hiển thị Random),
+5A Recovery, 4A1R Recovery, 3A2R Recovery và Dynamic Recovery.
+Không sửa env, reward, router, thuật toán, pin hoặc trọng số. Receipt
+`configs/bs5_best120k_repo_import.json` giữ hash gốc và hash các khác biệt hạ tầng
+đã có trong repo; runner vẫn chặn mọi thay đổi ngoài danh sách đã ghi nhận.
+
+Từ gốc repo, kiểm tra rồi chạy:
+
+```powershell
+$env:PYTHONDONTWRITEBYTECODE = '1'
+python -B scripts/evaluation/run_bs5_benchmark7_best120k.py check
+python -B scripts/evaluation/run_bs5_benchmark7_best120k.py all --workers 3 --deep-planner
+```
+
+`check` chỉ kiểm source, checkpoint và selection; không reset hoặc chạy env.step.
+`all` prepare nếu cần, chạy rồi xuất báo cáo. Một seed đánh giá **260001**,
+mỗi thuật toán một reset và **10.000 slot**, cùng UE trace/trạng thái đầu;
+tổng **70.000 slot thực thi**, preview tính riêng. Dùng `--workers 1` để chạy
+tuần tự; mỗi worker dùng một Torch thread. Không train thêm.
+
+Môi trường tham chiếu ở `requirements-benchmark120k.txt` (Torch 2.11.0 CPU,
+NumPy 2.1.3, Matplotlib 3.10.0); runtime local được khóa khi prepare, không
+đổi môi trường khi chạy tiếp. Runtime local khác runtime train được ghi rõ
+trong output; không coi là replay bitwise của lần train.
+
+Output mới: `results/bs5_bench7_best120k_seed260001_updated/`. Bản prepare cũ
+được giữ nguyên; không dùng resume của bản 6 hoặc bản 7 trước khi cập nhật code.
+Xem tiến độ bằng `python -B scripts/evaluation/run_bs5_benchmark7_best120k.py status`.
+Sau khi chạy xong, gửi `benchmark7_review.zip` và `EXPORT_INDEX.json`
+trong thư mục export cạnh output; giữ `benchmark7_raw.zip` để audit.
+Chạy lại `all` trên cùng output chỉ tiếp tục các phương pháp chưa bắt đầu.
+Nếu có trajectory đang dở/`partial_error`, giữ toàn bộ raw và ledger để kiểm;
+không sửa hoặc xóa ledger để chạy lại âm thầm. Một seed chưa đủ để ước lượng CI95%.
+
+Bản ZIP mới còn ghi `COMPUTE_ENVIRONMENT.json`, `compute_events.jsonl`,
+wall/CPU time của worker, latency quyết định từng slot và `compute_time.csv`.
+Giữ nguyên thứ tự scheduler và các phép đo chi phí từ gói mới.

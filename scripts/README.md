@@ -111,3 +111,21 @@ Giữ nguyên vị trí các entry point và bộ dựng notebook từ gói ngu�
 Các checkpoint và UE tape của hai bộ chạy paired là tài sản Dataset riêng, không nằm trong ZIP mã nguồn.
 
 Xem [bộ dựng notebook BS5](notebooks/README_builders.md) để dựng lại notebook, dùng API không ghi file khi import và kiểm tra đầu ra sau refactor.
+
+## Return-v4 fresh và benchmark CPU
+
+- `training/run_bs5_v4_fresh_train.py`: train C-R/C-N theo giao thức v4 riêng.
+- `evaluation/run_bs5_v4_benchmark.py`: prepare, run và export benchmark từ bộ train đã hoàn tất.
+- `experiments/bs5_v4_fresh_common.py`: trace chung, ledger và raw evidence.
+- `experiments/merge_bs5_v4_training.py`: ghép các partition đã train.
+- `analysis/bs5_v4_fresh_report.py`: audit, metric và báo cáo.
+- `verification/preflight_bs5_v4_fresh.py`, `preflight_bs5_v4_partition.py`, `profile_bs5_v4_benchmark.py`: kiểm tra chẩn đoán.
+
+Xem [lệnh benchmark local](../README.md#benchmark-cpu-return-v4-đã-tích-hợp).
+Checkpoint nằm trong `checkpoints/bs5_v4_training/`, kết quả ghi vào `results/`.
+
+Benchmark hiện tại từ gói best120k dùng
+`evaluation/run_bs5_benchmark7_best120k.py` và
+`analysis/report_bs5_benchmark7_best120k.py`, với bảy thuật toán trên một seed
+10k slot. Hai checkpoint mới ở `checkpoints/bs5_v4_best120k/`;
+xem [lệnh chạy hiện tại](../README.md#benchmark-hiện-tại-7-thuật-toán-best-trong-budget-120k).
