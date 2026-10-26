@@ -1,0 +1,68 @@
+{
+  "version": "bs5_best120k_repo_import_v1",
+  "archive_sha256": "bde16bef3539c23891fb954b3eba0ea967ebb5ebbd702a5aff090854e4d4cf2f",
+  "original_source_sha256": "75a5a8cf023ad34f5eb215b3c20eb94bc646789c5ca2b1e90b2d20c84c048b67",
+  "original_core_manifest_sha256": "c06c81c2703bbb6049bb5beb51f40218e6bd97724f35e2740e830ee05440648b",
+  "integration_files": {
+    "scripts/training/run_bs5_v4_fresh_train.py": {
+      "original_sha256": "eeaaddc7a4ec6c6c48b682ad4531543cda969e916283da9d16d1d266ff10d651",
+      "integrated_sha256": "54e96a57353081b83aefc68f7129c91ce010a6b3dbbc8c64fdac5d9fb19a5eca",
+      "reason": "Preserve the existing repository refactor/integration; simulator, reward and learner source remain byte-identical to imported core."
+    },
+    "scripts/notebooks/build_bs5_cr_h1200_return_notebook.py": {
+      "original_sha256": "95992025d102f65cf171e33989242538f38b93f63aac9ed338723241eada68f3",
+      "integrated_sha256": "ff5d461165f356f9663234eccaf20391ef0900df7b451f9e615e83a9f58f7fca",
+      "reason": "Preserve the existing repository refactor/integration; simulator, reward and learner source remain byte-identical to imported core."
+    },
+    "scripts/notebooks/build_bs5_return_v4_notebook.py": {
+      "original_sha256": "00938161890902ba40ca433d0a2721f30c29768f03696bb2c8107522c5e7dc1d",
+      "integrated_sha256": "9a023f6839f80cc4139f5bce6b10fa4f6140057aaa28edfdf977e1d17947f7b9",
+      "reason": "Preserve the existing repository refactor/integration; simulator, reward and learner source remain byte-identical to imported core."
+    },
+    "scripts/notebooks/build_bs5_cr_h1200_collision_notebook.py": {
+      "original_sha256": "8474eb033985eab6bdd30abb05d459419bdd3889af4caf258ea51d542c92195b",
+      "integrated_sha256": "03aed31694b0f6c207d906fa922f9932ddbcf2bafc358edfb4eff49fe3412c8d",
+      "reason": "Preserve the existing repository refactor/integration; simulator, reward and learner source remain byte-identical to imported core."
+    },
+    "scripts/notebooks/build_bs5_cr_h1200_notebook.py": {
+      "original_sha256": "24f352655cf069a0d343d5e6eebccf013eea95f78c53ec2944fb18a07de937d6",
+      "integrated_sha256": "a458a33b777da85f463219bc7566d0c33d2e9508a13e102aa0fc847a4ade64e3",
+      "reason": "Preserve the existing repository refactor/integration; simulator, reward and learner source remain byte-identical to imported core."
+    },
+    "scripts/notebooks/build_bs5_crcn_return_v3_notebook.py": {
+      "original_sha256": "e6584fb3814ff5c460a3e5c5d41198608af542244d30de888826e7fb9d15e3f2",
+      "integrated_sha256": "b60a12c3e06d5aa1512c8656724d598fadf6c7b983d17f3fb88fd50485540e3a",
+      "reason": "Preserve the existing repository refactor/integration; simulator, reward and learner source remain byte-identical to imported core."
+    },
+    "scripts/verification/preflight_bs5_return.py": {
+      "original_sha256": "af929487e69cdabccc701773318456f23c40683b80167a170109979aa35be932",
+      "integrated_sha256": "f086d4af939ab9b3f7d0d67e086001362d38db5bdba36447838f86fec5b4fb3e",
+      "reason": "Preserve the existing repository refactor/integration; simulator, reward and learner source remain byte-identical to imported core."
+    },
+    "scripts/verification/preflight_bs5_return_v4.py": {
+      "original_sha256": "e34bc0ce8e469bda7468ba39b56d8f9f80bd623d185c152b784ca40b5d1cff0c",
+      "integrated_sha256": "f055792b81022418f29c4b1615898e46ea8c1bab375227cef24bd44115c7284e",
+      "reason": "Preserve the existing repository refactor/integration; simulator, reward and learner source remain byte-identical to imported core."
+    },
+    "scripts/verification/preflight_bs5_crcn_return_v3.py": {
+      "original_sha256": "b0972c4bd3826fa7b7f5dedee22e96da23d2a0bd6c6b60f4ba628f56299d2975",
+      "integrated_sha256": "1d8672b888e381a89b0811f2003ae08ebd6355abfbc1abd2c29c51e7f526cc1a",
+      "reason": "Preserve the existing repository refactor/integration; simulator, reward and learner source remain byte-identical to imported core."
+    },
+    "scripts/evaluation/run_bs5_v4_benchmark.py": {
+      "original_sha256": "be75a1afe933eca09b05ffdab3e9a1da84a6a2b330a895e722a64e9d4e40c1b0",
+      "integrated_sha256": "d60153638e593db30b4439362a785784687c75acec016a04fc836d46f60fcd3e",
+      "reason": "Preserve the existing repository refactor/integration; simulator, reward and learner source remain byte-identical to imported core."
+    },
+    "scripts/experiments/run_bs5_return_v4_pair.py": {
+      "original_sha256": "1d8ac10d5726cfe0b5707e3ddb043331e8f429d204981235634053b4d4a1eff6",
+      "integrated_sha256": "3e771a9ed7b1321ebe9825ad6717be82ce7217d0683c70a3d87383d33233b194",
+      "reason": "Preserve the existing repository refactor/integration; simulator, reward and learner source remain byte-identical to imported core."
+    },
+    "scripts/experiments/run_bs5_crcn_return_v3.py": {
+      "original_sha256": "f5c8e355c997412bcecaced881970649a2ac0b1e9b3526a0754ca4fbbdbca29f",
+      "integrated_sha256": "521e37c3dc0d56e0ed502d0a3caa76efc2aa83aba6836a109e4cc575c3109618",
+      "reason": "Preserve the existing repository refactor/integration; simulator, reward and learner source remain byte-identical to imported core."
+    }
+  }
+}

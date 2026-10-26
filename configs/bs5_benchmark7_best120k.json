@@ -1,0 +1,29 @@
+{
+  "version": "bs5_return_v4_benchmark7_best120k_v1",
+  "scenario_seeds": [
+    260001
+  ],
+  "horizon": 10000,
+  "training_budget": 120000,
+  "training_seed": 551,
+  "baselines": [
+    "Random-Relay",
+    "5A-Recovery",
+    "4A1R-Recovery",
+    "3A2R-Recovery",
+    "Dynamic-Recovery"
+  ],
+  "display_names": {
+    "C-R_seed551": "C-R",
+    "C-N_seed551": "C-N",
+    "Random-Relay": "Random",
+    "5A-Recovery": "5A Recovery",
+    "4A1R-Recovery": "4A1R Recovery",
+    "3A2R-Recovery": "3A2R",
+    "Dynamic-Recovery": "Dynamic Relay"
+  },
+  "random_seed_namespace": 740001,
+  "zero_service_patience": 3,
+  "checkpoint_rule": "Best mean utility on five fixed validation seeds within 120k; ties earliest. Never select on test.",
+  "greedy_information": "Privileged exact current UE/network; isolated one-slot previews; no future trajectory search."
+}
