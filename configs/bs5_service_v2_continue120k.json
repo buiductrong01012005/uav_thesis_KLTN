@@ -1,0 +1,8 @@
+{
+  "version": "bs5_service_v2_continue120k_1",
+  "total_steps": 120000,
+  "evaluation_every": 6000,
+  "scope": "Continue the completed v2 pilot with unchanged physics, association, reward, actor, optimizer, replay and RNG; not a new training seed or a final benchmark.",
+  "selection": "Same two fixed validation seeds, mean utility, exact ties earliest; retain all pilot evaluations and best checkpoint.",
+  "runtime_policy": "Exact parent runtime by default; an explicit migration records the runtime change and does not claim bitwise equivalence."
+}
