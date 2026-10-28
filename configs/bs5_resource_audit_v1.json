@@ -1,0 +1,23 @@
+{
+  "version": "bs5_static_resource_audit_v1",
+  "scope": "Static synthetic diagnostics; no training, no long benchmark, no checkpoint selection.",
+  "resource_profiles": [
+    {"name": "legacy_5A_20BH", "access_bw_hz": 5000000, "backhaul_bw_hz": 20000000, "backhaul_tx_dbm": 20},
+    {"name": "access10_20BH", "access_bw_hz": 10000000, "backhaul_bw_hz": 20000000, "backhaul_tx_dbm": 20},
+    {"name": "access20_20BH", "access_bw_hz": 20000000, "backhaul_bw_hz": 20000000, "backhaul_tx_dbm": 20},
+    {"name": "access20_40BH", "access_bw_hz": 20000000, "backhaul_bw_hz": 40000000, "backhaul_tx_dbm": 20},
+    {"name": "access20_40BH_power30", "access_bw_hz": 20000000, "backhaul_bw_hz": 40000000, "backhaul_tx_dbm": 30, "exploratory_power_change": true}
+  ],
+  "access_distances_m": [0, 100, 200, 201],
+  "gateway_distances_m": [0, 100, 150, 200, 250, 300, 301],
+  "ue_counts": [1, 10, 25, 30],
+  "target_ue_mbps": 4,
+  "target_load_ues": 25,
+  "hybrid_local_offer_mbps": 40,
+  "hybrid_remote_offer_mbps": 40,
+  "hybrid_gateway_distance_m": 150,
+  "hybrid_forward_distance_m": 250,
+  "hybrid_energy_model": "normalized additive radio costs: Access + Relay; hover and motion charged once; not hardware-calibrated",
+  "next_benchmark_methods": ["C-R", "C-N", "Dynamic Role", "Random"],
+  "next_benchmark_status": "plan only; legacy seven-method benchmark stays reproducible"
+}

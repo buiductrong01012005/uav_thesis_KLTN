@@ -1,0 +1,52 @@
+{
+  "references": [
+    {
+      "id": "Xu2022",
+      "title": "Throughput Maximization of UAV Networks",
+      "authors": "Wenzheng Xu et al.",
+      "venue": "IEEE/ACM Transactions on Networking 30(2), 2022",
+      "doi": "10.1109/TNET.2021.3125982",
+      "url": "https://www.cs.cityu.edu.hk/~weliang/papers/XSZLXSWJZ22.pdf",
+      "location": "Section III-C, Spectrum Allocations, page 885",
+      "supports": "20 MHz spectrum segment per UAV; OFDMA; 100 resource blocks of 180 kHz with 2 MHz outside occupied resource blocks.",
+      "does_not_support": "Our 27dBm, 25-UE cap, 4Mbps demand, spectrum reuse, or exact physical throughput. Audit bandwidth is a simplified effective Shannon budget, not a full LTE resource grid."
+    },
+    {
+      "id": "Sensors2019",
+      "title": "Performance Evaluation of Direct-Link Backhaul for UAV-Aided Emergency Networks",
+      "venue": "Sensors 19(15), 3342, 2019",
+      "doi": "10.3390/s19153342",
+      "url": "https://www.mdpi.com/1424-8220/19/15/3342",
+      "location": "Table 2; Sections 4.2 and 5.2",
+      "supports": "20 MHz sub-6GHz backhaul; five 20MHz component carriers give 100MHz aggregate in a separate carrier-aggregation case.",
+      "does_not_support": "Our 5GHz, 20dBm backhaul or continuous 100MHz single-radio implementation; that paper uses 3.5GHz and different power. 40MHz is an exploratory sensitivity point."
+    },
+    {
+      "id": "Tafintsev2024",
+      "title": "Analysis of Duplexing Patterns in Multi-Hop mmWave Integrated Access and Backhaul Systems",
+      "authors": "Nikita Tafintsev et al.",
+      "venue": "IEEE Open Journal of the Communications Society 5, 5392-5407, 2024",
+      "doi": "10.1109/OJCOMS.2024.3449234",
+      "url": "https://researchportal.tuni.fi/en/publications/analysis-of-duplexing-patterns-in-multi-hop-mmwave-integrated-acc/",
+      "supports": "Half-duplex constraints, link scheduling and resource allocation must be considered jointly.",
+      "does_not_support": "Our specific sub-6GHz propagation, topology, bandwidth or identical numerical results."
+    },
+    {
+      "id": "ETSI36101",
+      "title": "3GPP TS 36.101 / ETSI TS 136 101 V8.10.0",
+      "url": "https://etsi.org/deliver/etsi_ts/136100_136199/136101/08.10.00_60/ts_136101v081000p.pdf",
+      "location": "Table 5.6-1",
+      "supports": "LTE channel bandwidth options include 5, 10, 15 and 20MHz.",
+      "does_not_support": "A claim that 20MHz is uniquely required, locally allocated spectrum, or sufficient for our traffic."
+    }
+  ],
+  "parameter_provenance": [
+    {"parameter": "Access20MHz", "status": "paper-backed candidate", "reference": "Xu2022"},
+    {"parameter": "Access10/15MHz", "status": "standard-supported ablation values", "reference": "ETSI36101"},
+    {"parameter": "BH20MHz", "status": "paper-backed candidate and legacy value", "reference": "Sensors2019"},
+    {"parameter": "BH100MHz", "status": "paper-inspired aggregate-budget sensitivity, not implemented LTE CA", "reference": "Sensors2019"},
+    {"parameter": "BH40MHz", "status": "exploratory sensitivity, not attributed to a paper", "reference": null},
+    {"parameter": "efficiency0.75", "status": "illustrative overhead sensitivity, not a measured or sourced constant", "reference": null},
+    {"parameter": "power27/20dBm,radius200/300m,25UE,4Mbps", "status": "legacy assumptions held fixed to isolate spectrum effects; not newly justified by these papers", "reference": null}
+  ]
+}
