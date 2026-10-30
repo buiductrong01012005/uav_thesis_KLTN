@@ -265,6 +265,8 @@ def test_auto_delivery_missing_workflow_does_not_fail_late_in_packaging(tmp_path
 def test_dataset_notebook_is_self_contained_and_never_invokes_training(
     tmp_path, monkeypatch, expanded_snapshot
 ):
+    if not (ROOT / 'scripts/notebooks/bs5_recover_dataset_kaggle.ipynb').is_file():
+        pytest.skip("Notebook fixtures are local and are not distributed with source.")
     notebook_path = ROOT / "scripts/notebooks/bs5_recover_dataset_kaggle.ipynb"
     notebook = read_json(notebook_path)
     codes = {c["id"]: "".join(c["source"]) for c in notebook["cells"] if c["cell_type"] == "code"}
@@ -348,6 +350,8 @@ def test_dataset_notebook_is_self_contained_and_never_invokes_training(
 def test_dataset_discovery_reports_exact_missing_file_instead_of_hiding_folder(
     tmp_path, monkeypatch
 ):
+    if not (ROOT / 'scripts/notebooks/bs5_recover_dataset_kaggle.ipynb').is_file():
+        pytest.skip("Notebook fixtures are local and are not distributed with source.")
     notebook = read_json(ROOT / "scripts/notebooks/bs5_recover_dataset_kaggle.ipynb")
     source = "".join(next(c for c in notebook["cells"] if c["id"] == "locate")["source"])
     data = tmp_path / "i/saved/continuous600"

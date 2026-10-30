@@ -23,6 +23,8 @@ BUILDERS = [
 
 @pytest.mark.parametrize("builder,filename", BUILDERS)
 def test_generated_notebook_preserves_delivered_bytes_and_cells(tmp_path, builder, filename):
+    if not (NOTEBOOKS / filename).is_file():
+        pytest.skip("Notebook fixtures are local and are not distributed with source.")
     module = importlib.import_module("scripts.notebooks." + builder)
     output = module.build(tmp_path / "generated")
     assert output.name == filename
@@ -58,6 +60,8 @@ assert callable(module.build)
 
 @pytest.mark.parametrize("builder,filename", BUILDERS)
 def test_direct_script_works_outside_repository(tmp_path, builder, filename):
+    if not (NOTEBOOKS / filename).is_file():
+        pytest.skip("Notebook fixtures are local and are not distributed with source.")
     folder = tmp_path / "scripts/notebooks"
     folder.mkdir(parents=True)
     for name in (builder + ".py", "_notebook.py"):

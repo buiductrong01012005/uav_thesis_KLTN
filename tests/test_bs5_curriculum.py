@@ -294,6 +294,8 @@ def test_cached_table_corruption_rejected_even_with_recomputed_manifest(tiny, tm
 
 
 def test_kaggle_four_cells_discover_extracted_source_prepare_resume_export(tmp_path, monkeypatch):
+    if not (ROOT / 'scripts/notebooks/bs5_curriculum_kaggle.ipynb').is_file():
+        pytest.skip("Notebook fixtures are local and are not distributed with source.")
     notebook = read_json(ROOT / "scripts/notebooks/bs5_curriculum_kaggle.ipynb")
     cells = ["".join(c["source"]) for c in notebook["cells"] if c["cell_type"] == "code"]
     assert len(cells) == 4

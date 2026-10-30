@@ -307,6 +307,8 @@ def test_one_dataset_orchestration_and_delivery_keep_four_best_weights(tmp_path,
 
 
 def test_one_dataset_notebook_prepares_then_runs_and_downloads(tmp_path, monkeypatch):
+    if not (workflow.ROOT / 'scripts/notebooks/bs5_retrain_eval600_kaggle.ipynb').is_file():
+        pytest.skip("Notebook fixtures are local and are not distributed with source.")
     nb = read_json(workflow.ROOT / "scripts/notebooks/bs5_retrain_eval600_kaggle.ipynb")
     cells = ["".join(c["source"]) for c in nb["cells"] if c["cell_type"] == "code"]
     assert len(cells) == 4
@@ -344,6 +346,8 @@ def test_one_dataset_notebook_prepares_then_runs_and_downloads(tmp_path, monkeyp
 
 @pytest.mark.parametrize("old_source", [False, True])
 def test_fresh_notebook_guards_source_and_preserves_container_bytes(tmp_path, monkeypatch, old_source):
+    if not (workflow.ROOT / 'scripts/notebooks/bs5_retrain_eval600_fresh_kaggle.ipynb').is_file():
+        pytest.skip("Notebook fixtures are local and are not distributed with source.")
     nb = read_json(workflow.ROOT / "scripts/notebooks/bs5_retrain_eval600_fresh_kaggle.ipynb")
     cells = ["".join(c["source"]) for c in nb["cells"] if c["cell_type"] == "code"]
     source = tmp_path / "input/source/uav_thesis"

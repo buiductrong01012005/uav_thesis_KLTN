@@ -63,6 +63,11 @@
       "original_sha256": "f5c8e355c997412bcecaced881970649a2ac0b1e9b3526a0754ca4fbbdbca29f",
       "integrated_sha256": "521e37c3dc0d56e0ed502d0a3caa76efc2aa83aba6836a109e4cc575c3109618",
       "reason": "Preserve the existing repository refactor/integration; simulator, reward and learner source remain byte-identical to imported core."
+    },
+    "scripts/training/run_bs5_launch_ab.py": {
+      "original_sha256": "671892ef99fa84954ad6bb8a9d057110f6ad3d6349b9f20f18c5de603af8e3b7",
+      "integrated_sha256": "43b56703f67f0857397a7c2351ffb305d00e73ebd5cb91d222fde8fcae0202b3",
+      "reason": "Source inventory tolerates optional local documentation missing from a source-only clone; experiment logic unchanged."
     }
   }
 }

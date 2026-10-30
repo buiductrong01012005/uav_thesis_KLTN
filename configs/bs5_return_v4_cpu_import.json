@@ -217,6 +217,11 @@
       "original_sha256": "eeaaddc7a4ec6c6c48b682ad4531543cda969e916283da9d16d1d266ff10d651",
       "integrated_sha256": "54e96a57353081b83aefc68f7129c91ce010a6b3dbbc8c64fdac5d9fb19a5eca",
       "reason": "Open the existing resume snapshot in r+b mode for os.fsync compatibility on Windows; serialized bytes and training behavior unchanged."
+    },
+    "scripts/training/run_bs5_launch_ab.py": {
+      "original_sha256": "671892ef99fa84954ad6bb8a9d057110f6ad3d6349b9f20f18c5de603af8e3b7",
+      "integrated_sha256": "43b56703f67f0857397a7c2351ffb305d00e73ebd5cb91d222fde8fcae0202b3",
+      "reason": "Source inventory tolerates optional local documentation missing from a source-only clone; experiment logic unchanged."
     }
   }
 }

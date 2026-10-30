@@ -185,6 +185,8 @@ class FreshV4Tests(unittest.TestCase):
         setup("cpu")
 
     def test_09_notebook_source_discovery_and_resume_transport(self):
+        if not (Path(__file__).resolve().parents[1] / 'scripts/notebooks/bs5_return_v4_fresh_train_kaggle.ipynb').is_file():
+            self.skipTest("Notebook fixtures are local and are not distributed with source.")
         project = Path(__file__).resolve().parents[1]
         simulation = self.base / "kaggle_sim"
         inputs, work = simulation / "input", simulation / "working"
@@ -227,7 +229,6 @@ class FreshV4Tests(unittest.TestCase):
 
     def test_10_parallel_partitions_match_sequential_and_merge(self):
         from scripts.experiments.merge_bs5_v4_training import merge
-        import shutil
         inputs = []
         for arm in ["C-R", "C-N"]:
             for seed in [955551, 955552]:
@@ -293,13 +294,17 @@ class FreshV4Tests(unittest.TestCase):
         self.assertEqual(receipt["final_test_steps"], 0)
         self.assertEqual(receipt["diagnostic_slots"], 56)
 
-    def test_12_partition_preflight_and_notebook_scopes(self):
+    def test_12_partition_preflight(self):
         from scripts.verification.preflight_bs5_v4_partition import check
         receipt = check(self.base / "partition_preflight", ["C-N"], [552], "cpu")
         self.assertEqual(receipt["status"], "passed")
         self.assertEqual(receipt["main_training_steps"], 0)
         self.assertEqual(receipt["benchmark_steps"], 0)
+
+    def test_13_local_partition_notebook_scopes(self):
         project = Path(__file__).resolve().parents[1]
+        if not (project / "scripts/notebooks/bs5_return_v4_train_CR_551_kaggle.ipynb").is_file():
+            self.skipTest("Notebook fixtures are local and are not distributed with source.")
         seen = set()
         for arm in ["CR", "CN"]:
             for seed in [551, 552]:

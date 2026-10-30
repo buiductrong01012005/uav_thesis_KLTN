@@ -126,7 +126,11 @@ def source_files():
                 path = Path(parent) / name
                 if path.suffix not in (".pyc", ".pyo") and not path.is_symlink():
                     files.append(path)
-    files += [ROOT / n for n in ("AGENTS.md", "README.md", ".gitignore", "pyproject.toml")]
+    files += [
+        ROOT / n
+        for n in ("AGENTS.md", "README.md", ".gitignore", "pyproject.toml")
+        if (ROOT / n).is_file()
+    ]
     files += list(ROOT.glob("requirements*.txt"))
     return sorted(files)
 
