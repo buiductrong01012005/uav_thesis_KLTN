@@ -1,5 +1,6 @@
 __pycache__/
 .pytest_cache/
+.ipynb_checkpoints/
 *.pyc
 *.pyo
 .venv/
@@ -8,7 +9,6 @@ checkpoints/
 *.zip
 final_results_figures_tables
 uav_all_policies_figures
-ĐẠI HỌC QUỐC GIA HÀ NỘI.docx
 .ruff_cache/
 .mypy_cache/
 docs
@@ -16,3 +16,22 @@ reports
 AGENTS.md
 archive/
 /assets/
+
+# Documentation, reports and notebook workflows stay local.
+*.[mM][dD]
+!/README.md
+*.rst
+*.pdf
+*.docx
+*.pptx
+*.ipynb
+/scripts/notebooks/
+
+# One shared dependency file; older runtime locks are archived locally.
+/requirements*.txt
+!/requirements.txt
+
+# Local backups and incomplete exports.
+*.bak
+*.orig
+*.tmp

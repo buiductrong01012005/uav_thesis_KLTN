@@ -1,4 +1,0 @@
-# CPU benchmark; install the CPU Torch wheel first as shown in the guide.
-numpy==2.1.3
-torch==2.11.0
-matplotlib==3.10.0

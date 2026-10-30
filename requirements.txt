@@ -5,3 +5,7 @@ matplotlib>=3.8
 pandas>=2.2
 scipy>=1.11
 filelock>=3.12
+ruff==0.15.21
+
+# Historical CPU benchmark: numpy 2.1.3, torch 2.11.0 CPU, matplotlib 3.10.0.
+# Historical Hybrid/TCF numerical runtime: numpy 2.3.5, scipy 1.17.0.
