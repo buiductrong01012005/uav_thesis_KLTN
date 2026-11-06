@@ -1,0 +1,47 @@
+{
+  "version": "fair300k_frozen_benchmark_v1",
+  "test_seeds": [
+    930101,
+    930102,
+    930103,
+    930104,
+    930105,
+    930106,
+    930107,
+    930108,
+    930109,
+    930110
+  ],
+  "horizon": 10000,
+  "diagnostic_seeds": [
+    940101
+  ],
+  "diagnostic_horizon": 96,
+  "network_sample_every_slots": 100,
+  "save_every_slots": 500,
+  "log_every_slots": 100,
+  "labels": [
+    "EMA",
+    "OLD"
+  ],
+  "selection": "Frozen best.pt by the original two validation seed mean reward_total; EMA@294k,OLD@288k; no test reselection",
+  "initialization": "Original evaluator reset: residual_battery=30.0, unchanged physical environment and warm-start rules",
+  "scope": "Two frozen C-R policies trained with seed551; paired scenario seed variability, not training-seed variability; no training,checkpoint or reward changes on test",
+  "trace_hash_contract": "H0=32 zero bytes; Ht=SHA256(Ht-1 || service-time UE positions as float64 little-endian C-order)",
+  "parts": {
+    "1": [
+      930101,
+      930102,
+      930103,
+      930104,
+      930105
+    ],
+    "2": [
+      930106,
+      930107,
+      930108,
+      930109,
+      930110
+    ]
+  }
+}

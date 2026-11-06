@@ -1,0 +1,95 @@
+{
+  "version": "bs5_fair300k_v3",
+  "training_seed": 551,
+  "total_steps": 300000,
+  "stage_ends": [
+    3000,
+    6000,
+    12000,
+    300000
+  ],
+  "early_horizon": 150,
+  "full_horizon": 1200,
+  "evaluation_every": 6000,
+  "validation_seeds": [
+    720001,
+    720002
+  ],
+  "train_seed_base": 710001,
+  "lr": 0.0003,
+  "gamma": 0.99,
+  "batch_size": 64,
+  "replay_capacity": 30000,
+  "warmup": 1000,
+  "update_every": 4,
+  "target_every": 1000,
+  "epsilon_decay_steps": 18000,
+  "epsilon_end": 0.05,
+  "coverage_floor_mbps": 1.0,
+  "fairness_basis": "Jain over all 90 UEs after rates below coverage_floor are zeroed; raw Jain also reported",
+  "presets": {
+    "service_fair": {
+      "throughput": 0.4,
+      "coverage": 0.0,
+      "fairness": 0.6
+    }
+  },
+  "service": {
+    "access_channel_mhz": 20,
+    "access_occupied_fraction": 0.9,
+    "backhaul_total_mhz": 100,
+    "backhaul_occupied_fraction": 0.9,
+    "spectrum_mode": "colored_reuse",
+    "rate_efficiency": 1.0,
+    "report_period_slots": 3,
+    "report_delay_slots": 1,
+    "report_max_age_slots": 30,
+    "beacon_radius_m": 200,
+    "reward_mode": "utility",
+    "qos_weight": 0.25,
+    "outage_weight": 0.1
+  },
+  "selection": "best.pt: mean reward_total on the fixed two validation seeds within300k; separate service/throughput/QoS bests",
+  "scope": "Two fresh matched C-R runs,seed551,EMA versus legacy instantaneous qualified fairness; only reward fairness definition differs; identical causal history input and model dimensions; no test reselection",
+  "training_env_version": "bs5_fair_comparison_v3",
+  "qos_tolerance_mbps": 1e-06,
+  "initialisation": "fresh; no old optimizer/replay or pretrained head imported",
+  "resource_contract": "Legacy separate Access20MHz/BH100MHz shared; full H endpoint budgets; BH half duplex per endpoint; no new spectrum",
+  "energy_contract": "Physical units, see src/envs/bs5_energy_swap.py",
+  "role_observation": {
+    "Access": 0,
+    "Relay": 1,
+    "Hybrid": 0.5
+  },
+  "pooling_contract": "All new runs use a fixed5x5-to3x3 linear average map, mathematically equal adaptive bins, no learned parameters; deterministicCUDA backward. HistoricalCPU used native adaptive pooling.",
+  "routing_contract": "Acyclic BS-rooted minimum sum isolated airtime forest, no relay-depth cap; fixed-route global LP, not joint optimal routing or packet-delay model",
+  "default_preset": "service_fair",
+  "metric_contract": "True post-step reward includes selected fairness,energy and blocked movement penalties; legacy coverage/instant Jain remain evaluation metrics",
+  "battery_horizon": 300,
+  "lr_end": 3e-05,
+  "lr_schedule": "linear",
+  "energy_config": {
+    "energy_weight": 0.1
+  },
+  "collision_config": {
+    "collision_weight": 0.2
+  },
+  "observation_contract": "Original148 +25 delayed detected-UE mean EMA rate map; both modes identical; no current global UE positions",
+  "state_contract": "Original66 +90 per-UE EMA rates for centralized training only",
+  "fairness_definition": "EMA of every UE rate with rho1/60; no1Mbps truncation in EMA Jain. Instant control uses legacy per-slot >=1Mbps-qualified Jain.",
+  "fair_history_initialization": "All90 EMA rates start at0 at each episode reset",
+  "comparison_contract": "Both modes use same 0.4/0.6 service weights,energy0.1,blocked0.2,obs173,state156,CNN8channels,budget300k,seed551,curriculum,LR,epsilon and validation traces",
+  "reserved_test_seeds": [
+    930101,
+    930102,
+    930103,
+    930104,
+    930105,
+    930106,
+    930107,
+    930108,
+    930109,
+    930110
+  ],
+  "test_contract": "Reserved only,not run by training notebook; disjoint from710001..710040 train and720001/720002 validation and old920101..920110 test"
+}
