@@ -1,0 +1,32 @@
+{
+  "version": "energy_collision_frozen120k_benchmark_v1",
+  "test_seeds": [
+    920101,
+    920102,
+    920103,
+    920104,
+    920105,
+    920106,
+    920107,
+    920108,
+    920109,
+    920110
+  ],
+  "horizon": 10000,
+  "diagnostic_seeds": [
+    940001
+  ],
+  "diagnostic_horizon": 96,
+  "network_sample_every_slots": 100,
+  "save_every_slots": 500,
+  "log_every_slots": 100,
+  "labels": [
+    "P03",
+    "P05"
+  ],
+  "selection": "frozen best.pt by original two-seed mean reward_total; no test reselection",
+  "initialization": "same original validation reset: residual_battery=30.0 (UAV0); other UAVs retain original reset values",
+  "scope": "Comparison of two frozen policies trained with seed551. Ten paired scenario seeds measure scenario variability, not training-seed variability. Neither historical old-battery results nor untrained new baselines are combined.",
+  "metric_fix": "Only episode metric clips [-1e-9,0) into a new array; raw rates preserved",
+  "trace_hash_contract": "H0=32 zero bytes; Ht=SHA256(Ht-1 || service-time UE positions as float64 little-endian C-order)"
+}
