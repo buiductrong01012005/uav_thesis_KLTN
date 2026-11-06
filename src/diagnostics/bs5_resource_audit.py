@@ -4,7 +4,6 @@ No env.step(), training, test-seed rollout, policy selection or legacy mutation.
 Synthetic co-located UEs isolate load effects; they are not a mobility scenario.
 Hybrid is a two-node link-budget experiment, not a trained Hybrid environment.
 """
-
 from __future__ import annotations
 
 from dataclasses import asdict
@@ -116,7 +115,7 @@ def gateway_design(env, target_mbps: float) -> dict:
         "gateway_rate_at_radius_mbps": at_edge,
         "max_gateway_distance_for_target_m": max_distance,
         "required_gateway_tx_at_radius_dbm": required_tx,
-        "required_gateway_tx_at_radius_w": 10**watts_exponent if watts_exponent < 300 else None,
+        "required_gateway_tx_at_radius_w": 10 ** watts_exponent if watts_exponent < 300 else None,
         "margin_db": 0,
         "note": "Model-only Shannon target; no interference/fading margin or hardware validation",
     }
@@ -150,13 +149,9 @@ def loss_waterfall(env, net: dict) -> dict:
         "associated_ues": len(associated),
     }
     losses["conservation_residual_mbps"] = losses["demand_mbps"] - sum(
-        losses[k]
-        for k in (
-            "geometry_loss_mbps",
-            "association_cap_loss_mbps",
-            "access_radio_loss_mbps",
-            "backhaul_loss_mbps",
-            "delivered_mbps",
+        losses[k] for k in (
+            "geometry_loss_mbps", "association_cap_loss_mbps", "access_radio_loss_mbps",
+            "backhaul_loss_mbps", "delivered_mbps",
         )
     )
     if abs(losses["conservation_residual_mbps"]) > 1e-7:
@@ -180,19 +175,14 @@ def static_scene(profile: dict, users: int, access_m: float, gateway_m: float) -
     net = env.compute_network()
     rates = net["ue_rate_mbps"]
     return dict(
-        profile=profile["name"],
-        fixture="synthetic_colocated_ues_one_access_one_gateway",
-        users=users,
-        access_distance_m=access_m,
-        gateway_distance_m=gateway_m,
+        profile=profile["name"], fixture="synthetic_colocated_ues_one_access_one_gateway",
+        users=users, access_distance_m=access_m, gateway_distance_m=gateway_m,
         access_bandwidth_mhz=env.cfg.access_bw_hz / 1e6,
         gateway_bandwidth_mhz=env.cfg.backhaul_bw_hz / 1e6,
         gateway_tx_dbm=env.cfg.backhaul_tx_dbm,
-        utility=net["utility"],
-        positive_service_ues=int(np.sum(rates > 1e-9)),
+        utility=net["utility"], positive_service_ues=int(np.sum(rates > 1e-9)),
         qos_ues=int(np.sum(rates >= env.cfg.ue_demand_mbps - 1e-9)),
-        min_ue_mbps=float(np.min(rates)),
-        mean_ue_mbps=float(np.mean(rates)),
+        min_ue_mbps=float(np.min(rates)), mean_ue_mbps=float(np.mean(rates)),
         **loss_waterfall(env, net),
     )
 
@@ -216,28 +206,17 @@ def shared_relay_scene(profile: dict, gateway_m: float) -> dict:
     if allocated > relay_rate + 1e-7:
         raise AssertionError("Shared Relay allocates more than its gateway capacity")
     return dict(
-        profile=profile["name"],
-        fixture="synthetic_two_access_shared_relay_50_ues",
-        relay_gateway_distance_m=gateway_m,
-        access_relay_distance_m=200,
-        relay_clients=len(selected),
-        relay_gateway_mbps=relay_rate,
-        allocated_relay_mbps=allocated,
-        direct_fallback_rejections=len(net["admission_rejected_access_ids"]),
+        profile=profile["name"], fixture="synthetic_two_access_shared_relay_50_ues",
+        relay_gateway_distance_m=gateway_m, access_relay_distance_m=200,
+        relay_clients=len(selected), relay_gateway_mbps=relay_rate,
+        allocated_relay_mbps=allocated, direct_fallback_rejections=len(net["admission_rejected_access_ids"]),
         qos_ues=int(np.sum(net["ue_rate_mbps"] >= 4 - 1e-9)),
         **loss_waterfall(env, net),
     )
 
 
-def hybrid_flow_budget(
-    gateway_mbps: float,
-    forward_mbps: float,
-    local_offer: float,
-    remote_offer: float,
-    *,
-    half_duplex: bool,
-    fractions: Iterable[float],
-):
+def hybrid_flow_budget(gateway_mbps: float, forward_mbps: float, local_offer: float,
+                       remote_offer: float, *, half_duplex: bool, fractions: Iterable[float]):
     """2-UAV abstraction: gateway -> hub -> remote Access + hub's local UEs.
 
     Each UAV has its own fixed Access radio. Hybrid activates hub's Access radio
@@ -259,32 +238,22 @@ def hybrid_flow_budget(
             incoming = receive * gateway_mbps
             local = min(local_offer if hybrid else 0, incoming)
             remote = min(remote_offer, forward * forward_mbps, max(0, incoming - local))
-            rows.append(
-                dict(
-                    mode="Hybrid" if hybrid else "Relay",
-                    duplex="HD" if half_duplex else "ideal_parallel",
-                    receive_fraction=receive,
-                    forward_fraction=forward,
-                    local_delivered_mbps=local,
-                    remote_delivered_mbps=remote,
-                    total_delivered_mbps=local + remote,
-                    gateway_allocated_mbps=incoming,
-                    forward_allocated_mbps=forward * forward_mbps,
-                    receive_load_mbps=local + remote,
-                    forward_load_mbps=remote,
-                )
-            )
+            rows.append(dict(
+                mode="Hybrid" if hybrid else "Relay", duplex="HD" if half_duplex else "ideal_parallel",
+                receive_fraction=receive, forward_fraction=forward,
+                local_delivered_mbps=local, remote_delivered_mbps=remote,
+                total_delivered_mbps=local + remote, gateway_allocated_mbps=incoming,
+                forward_allocated_mbps=forward * forward_mbps,
+                receive_load_mbps=local + remote, forward_load_mbps=remote,
+            ))
     return rows
 
 
 def hybrid_energy(env, *, moving: bool, hybrid: bool) -> float:
     """Provisional normalized model, not Joules and not a battery-cycle rollout."""
     cfg = env.cfg
-    return (
-        cfg.hover_drain
-        + cfg.move_extra_drain * moving
-        + cfg.relay_radio_drain
-        + (cfg.access_radio_drain if hybrid else 0)
+    return cfg.hover_drain + cfg.move_extra_drain * moving + cfg.relay_radio_drain + (
+        cfg.access_radio_drain if hybrid else 0
     )
 
 
@@ -294,44 +263,25 @@ def run_audit(config: dict) -> dict:
     for profile in profiles:
         env = make_radio(profile)
         for distance in config["access_distances_m"]:
-            links.append(
-                dict(
-                    profile=profile["name"],
-                    link="Access",
-                    distance_m=distance,
-                    raw_capacity_mbps=access_raw_rate(env, distance, 25) * 25,
-                    raw_per_ue_25_mbps=access_raw_rate(env, distance, 25),
-                    feasible=distance <= env.cfg.access_radius_cells * env.cfg.cell_size_m,
-                )
-            )
+            links.append(dict(profile=profile["name"], link="Access", distance_m=distance,
+                              raw_capacity_mbps=access_raw_rate(env, distance, 25) * 25,
+                              raw_per_ue_25_mbps=access_raw_rate(env, distance, 25),
+                              feasible=distance <= env.cfg.access_radius_cells * env.cfg.cell_size_m))
         for distance in config["gateway_distances_m"]:
             gateway, forward = backhaul_rates(env, distance)
             for kind, rate in [("UAV-BS", gateway), ("UAV-UAV", forward)]:
-                links.append(
-                    dict(
-                        profile=profile["name"],
-                        link=kind,
-                        distance_m=distance,
-                        raw_capacity_mbps=rate,
-                        raw_per_ue_25_mbps=None,
-                        feasible=distance <= env.cfg.backhaul_radius_cells * env.cfg.cell_size_m,
-                    )
-                )
+                links.append(dict(profile=profile["name"], link=kind, distance_m=distance,
+                                  raw_capacity_mbps=rate, raw_per_ue_25_mbps=None,
+                                  feasible=distance <= env.cfg.backhaul_radius_cells * env.cfg.cell_size_m))
         required_access_bw = minimum_access_bandwidth(
-            env,
-            distance_m=200,
-            users=config["target_load_ues"],
+            env, distance_m=200, users=config["target_load_ues"],
             target_mbps=config["target_ue_mbps"],
         )
-        designs.append(
-            dict(
-                profile=profile["name"],
-                min_access_bw_at_edge_mhz=None
-                if required_access_bw is None
-                else required_access_bw / 1e6,
-                **gateway_design(env, config["target_load_ues"] * config["target_ue_mbps"]),
-            )
-        )
+        designs.append(dict(
+            profile=profile["name"],
+            min_access_bw_at_edge_mhz=None if required_access_bw is None else required_access_bw / 1e6,
+            **gateway_design(env, config["target_load_ues"] * config["target_ue_mbps"]),
+        ))
         for users in config["ue_counts"]:
             for access in config["access_distances_m"]:
                 for gateway in config["gateway_distances_m"]:
@@ -346,58 +296,32 @@ def run_audit(config: dict) -> dict:
         for hd in (False, True):
             fractions = np.linspace(0, 1, 101) if hd else [1.0]
             for row in hybrid_flow_budget(
-                gateway,
-                forward,
-                min(config["hybrid_local_offer_mbps"], per_node_offer),
+                gateway, forward, min(config["hybrid_local_offer_mbps"], per_node_offer),
                 min(config["hybrid_remote_offer_mbps"], per_node_offer),
-                half_duplex=hd,
-                fractions=fractions,
+                half_duplex=hd, fractions=fractions,
             ):
                 # Existing drain constants were assigned at original radio power.
                 # Do not report a higher-power radio as having free extra power.
                 energy_valid = env.cfg.backhaul_tx_dbm == BS5LaunchConfig().backhaul_tx_dbm
-                hub_energy = (
-                    hybrid_energy(env, moving=False, hybrid=row["mode"] == "Hybrid")
-                    if energy_valid
-                    else None
-                )
-                remote_energy = (
-                    env.cfg.hover_drain + env.cfg.access_radio_drain if energy_valid else None
-                )
-                hybrid_rows.append(
-                    dict(
-                        profile=profile["name"],
-                        gateway_capacity_mbps=gateway,
-                        forward_capacity_mbps=forward,
-                        local_priority=True,
-                        hub_energy_units=hub_energy,
-                        remote_energy_units=remote_energy,
-                        fleet_energy_units=hub_energy + remote_energy if energy_valid else None,
-                        energy_status="provisional_normalized"
-                        if energy_valid
-                        else "unvalidated_power_change",
-                        **row,
-                    )
-                )
+                hub_energy = hybrid_energy(env, moving=False, hybrid=row["mode"] == "Hybrid") if energy_valid else None
+                remote_energy = env.cfg.hover_drain + env.cfg.access_radio_drain if energy_valid else None
+                hybrid_rows.append(dict(
+                    profile=profile["name"], gateway_capacity_mbps=gateway,
+                    forward_capacity_mbps=forward, local_priority=True,
+                    hub_energy_units=hub_energy, remote_energy_units=remote_energy,
+                    fleet_energy_units=hub_energy + remote_energy if energy_valid else None,
+                    energy_status="provisional_normalized" if energy_valid else "unvalidated_power_change", **row,
+                ))
     return dict(
-        static_scenes=rows,
-        shared_relay=relay_rows,
-        link_budgets=links,
-        design_targets=designs,
-        hybrid_airtime=hybrid_rows,
+        static_scenes=rows, shared_relay=relay_rows, link_budgets=links,
+        design_targets=designs, hybrid_airtime=hybrid_rows,
         baseline_config=asdict(make_radio().cfg),
         receipt=dict(
-            version=config["version"],
-            scope=config["scope"],
-            environment_step_calls=0,
-            training_updates=0,
-            checkpoint_evaluations=0,
-            scene_evaluations=len(rows) + len(relay_rows),
-            direct_scenes=len(rows),
-            shared_relay_scenes=len(relay_rows),
-            hybrid_flow_evaluations=len(hybrid_rows),
-            legacy_files_modified=False,
-            random_trajectories_consumed=False,
+            version=config["version"], scope=config["scope"],
+            environment_step_calls=0, training_updates=0, checkpoint_evaluations=0,
+            scene_evaluations=len(rows) + len(relay_rows), direct_scenes=len(rows),
+            shared_relay_scenes=len(relay_rows), hybrid_flow_evaluations=len(hybrid_rows),
+            legacy_files_modified=False, random_trajectories_consumed=False,
             assumptions=[
                 "Current simulator mean-path-loss/Shannon model; no interference or fading margin",
                 "Static synthetic geometry, not coverage of realistic mobile demand",

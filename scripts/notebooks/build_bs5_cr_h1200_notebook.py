@@ -1,16 +1,13 @@
 """Build the portable Kaggle notebook using stdlib only. No execution in this builder."""
-
+import json
 from pathlib import Path
 
-if __package__:
-    from ._notebook import code, make_notebook, markdown, write_notebook
-else:
-    from _notebook import code, make_notebook, markdown, write_notebook
+
+def markdown(s): return dict(cell_type="markdown",metadata={},source=s.splitlines(True))
+def code(s): return dict(cell_type="code",metadata={},source=s.splitlines(True),outputs=[],execution_count=None)
 
 
-def build(output_directory=None):
-    cells = [
-        markdown("""# C-R 60k — game S4 dài1.200 slot
+cells=[markdown("""# C-R 60k — game S4 dài1.200 slot
 
 1. Tạo Kaggle Dataset từ **ZIP source được bàn giao**, rồi Add Input vào notebook này.
 2. Mặc định dùng CPU. Không cần Internet nếu runtime đã có NumPy, Torch và pytest.
@@ -20,8 +17,7 @@ def build(output_directory=None):
 Ngân sách chính: **60k train +72k validation**, chưa gồm preflight tối đa512 diagnostic-train và2.000 control/eval bước. S1–S3:150 slot; S4:40 game×1.200. Mốc validation:0/12/24/36/48/60k, mỗi mốc10 game dài.
 
 Notebook mặc định dừng an toàn ở game boundary sau khoảng7 giờ của lệnh train; đây là lựa chọn của notebook, không phải cam kết giới hạn Kaggle. Có thể đổi `MAX_SESSION_SECONDS` trước chạy. Download/export trước khi kết thúc session; Kaggle working không được giả định tự tồn tại qua session.
-"""),
-        code("""from pathlib import Path
+"""),code('''from pathlib import Path
 SOURCE_PATH = None  # None: tìm tự động; hoặc đường dẫn ZIP/thư mục source trong /kaggle/input
 RESUME_INPUT_DIR = None  # thư mục chứa export ZIPs + EXPORT_INDEX.json, hoặc merged result root
 OUTPUT_ROOT = Path("/kaggle/working/bs5_cr_h1200_seed551")
@@ -29,8 +25,7 @@ DEVICE = "cpu"  # chỉ đổi thành "cuda" TRƯỚC prepare run mới
 RUN_PREFLIGHT = True
 RUN_MAIN = True
 MAX_SESSION_SECONDS = 7 * 3600  # None: không đặt giới hạn phiên bằng notebook
-"""),
-        code("""import os, sys, zipfile, hashlib, json, shutil, subprocess, time
+'''),code('''import os, sys, zipfile, hashlib, json, shutil, subprocess, time
 os.environ["PYTHONDONTWRITEBYTECODE"] = "1"
 sys.dont_write_bytecode = True
 os.environ.setdefault("CUBLAS_WORKSPACE_CONFIG", ":4096:8")
@@ -77,8 +72,7 @@ try:
 except ImportError as e:
     raise RuntimeError("Runtime thiếu pytest. Cài pytest rồi khởi động lại; notebook không tự đổi Torch/CUDA.") from e
 print({"source":str(SOURCE_ROOT),"python":sys.version,"numpy":np.__version__,"torch":torch.__version__,"device":DEVICE})
-"""),
-        code("""# Preflight bounded; cached by exact source/runtime identity, never silently repeated.
+'''),code('''# Preflight bounded; cached by exact source/runtime identity, never silently repeated.
 from scripts.training import run_bs5_cr_h1200 as runner
 runner.setup_runtime(DEVICE,1)
 identity=runner.source_identity()
@@ -114,8 +108,7 @@ elif RUN_PREFLIGHT:
         "note":"8 tests, CPU deterministic resume parity; optional CUDA compatibility smoke"})
 else:
     raise RuntimeError("Chưa có preflight PASS. Bật RUN_PREFLIGHT=True trước main.")
-"""),
-        code("""# Optional restore. Do not copy only weights/best.pt and call that a resume.
+'''),code('''# Optional restore. Do not copy only weights/best.pt and call that a resume.
 if RESUME_INPUT_DIR is not None:
     src=Path(RESUME_INPUT_DIR)
     if OUTPUT_ROOT.exists(): raise RuntimeError("Output đã tồn tại; không chép đè khi restore.")
@@ -151,8 +144,7 @@ if RUN_MAIN:
     print(runner.read_json(OUTPUT_ROOT/"status.json"))
 else:
     print("RUN_MAIN=False: main chưa chạy.")
-"""),
-        code("""# Export once after complete or graceful boundary pause. No policy re-evaluation.
+'''),code('''# Export once after complete or graceful boundary pause. No policy re-evaluation.
 if RUN_MAIN and (OUTPUT_ROOT/"commit.json").exists():
     EXPORT=runner.export(OUTPUT_ROOT)
     print("Export:",EXPORT)
@@ -161,8 +153,7 @@ if RUN_MAIN and (OUTPUT_ROOT/"commit.json").exists():
         if f.is_file(): display(FileLink(str(f)))
     print("Gửi lại review_small.zip, toàn bộ audit_light ZIPs và EXPORT_INDEX.json để phân tích offline.")
     print("Giữ thêm mọi repro_full file + raw companions để resume; không chỉ giữ best weights.")
-"""),
-        markdown("""## Đọc kết quả và chạy tiếp
+'''),markdown("""## Đọc kết quả và chạy tiếp
 
 - `review_small.zip`: bảng, curve, protocol và báo cáo nhanh.
 - `audit_light*.zip`: đầy đủ raw để audit; giải nén cùng một thư mục. Analyzer không cần Torch/checkpoint.
@@ -172,22 +163,12 @@ if RUN_MAIN and (OUTPUT_ROOT/"commit.json").exists():
 - Dừng tự động tại60k. Nối120k cần quyết định sau khi xem bằng chứng.
 
 Đây là **một seed**, validation đã dùng trước đây. Không suy ra hội tụ hoặc ưu thế curriculum/direct/C-R/C-N mới. Best được chọn bằng mean utility toàn1.200 slot; last full state phục vụ resume.
-"""),
-    ]
+""")]
 
-    notebook = make_notebook(
-        cells,
-        kaggle=dict(
-            accelerator="none", isInternetEnabled=False, language="python", sourceType="notebook"
-        ),
-    )
-    for i, cell in enumerate(cells):
-        cell["id"] = f"bs5-h1200-{i:02d}"
-    directory = Path(output_directory) if output_directory is not None else Path(__file__).parent
-    return write_notebook(
-        directory / "bs5_cr_h1200_60k_kaggle.ipynb", notebook, trailing_newline=True
-    )
-
-
-if __name__ == "__main__":
-    print(build())
+notebook=dict(cells=cells,metadata=dict(kernelspec=dict(display_name="Python 3",language="python",name="python3"),
+    language_info=dict(name="python",version="3"),kaggle=dict(accelerator="none",isInternetEnabled=False,
+    language="python",sourceType="notebook")),nbformat=4,nbformat_minor=5)
+for i,cell in enumerate(cells): cell["id"]=f"bs5-h1200-{i:02d}"
+path=Path(__file__).with_name("bs5_cr_h1200_60k_kaggle.ipynb")
+path.write_text(json.dumps(notebook,ensure_ascii=False,indent=1)+"\n",encoding="utf-8")
+print(path)

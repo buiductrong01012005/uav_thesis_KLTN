@@ -4,7 +4,6 @@ This is a feasible approximate reference, NOT a global upper bound. Planning
 scores frozen current UE/status geometry using the unmodified v2 scheduler.
 Execution never teleports, resets energy, changes routing, or reads future UEs.
 """
-
 from copy import copy
 import numpy as np
 from src.envs.v0_env import MOVE_DELTAS
@@ -17,7 +16,7 @@ class PrivilegedPlacementSearch:
         self.period = int(period)
         self.budget = int(budget)
         if self.period < 1 or self.budget < 30:
-            raise ValueError("period >= 1 and budget >= 30 required")
+            raise ValueError('period >= 1 and budget >= 30 required')
         self.targets = None
         self.target_roles = None
         self.calls = 0
@@ -35,31 +34,21 @@ class PrivilegedPlacementSearch:
         view = self._view()
         active = np.flatnonzero(env.status == 0)
         cells = np.indices((env.cfg.grid_size, env.cfg.grid_size)).reshape(2, -1).T
-        counts = (
-            np.linalg.norm(cells[:, None, :] - env.ue_positions[None, :, :], axis=2)
-            <= env.cfg.access_radius_cells + 1e-9
-        ).sum(axis=1)
-        xy = (cells[:, ::-1] + 0.5) * env.cfg.cell_size_m
-        gateway = np.linalg.norm(xy[:, None, :] - env.surviving_bs_xy[None, :, :], axis=2).min(
-            axis=1
-        )
+        counts = (np.linalg.norm(cells[:, None, :] - env.ue_positions[None, :, :], axis=2)
+                  <= env.cfg.access_radius_cells + 1e-9).sum(axis=1)
+        xy = (cells[:, ::-1] + .5) * env.cfg.cell_size_m
+        gateway = np.linalg.norm(xy[:, None, :] - env.surviving_bs_xy[None, :, :], axis=2).min(axis=1)
         max_bh = env.cfg.backhaul_radius_cells * env.cfg.cell_size_m
         # Geometry only proposes candidates; every accepted plan is scored by
         # the actual v2 radio/association/routes/LP implementation.
-        access_prob = (counts.astype(float) + 0.1) ** 2
+        access_prob = (counts.astype(float) + .1) ** 2
         access_prob /= access_prob.sum()
-        support = (
-            (
-                np.linalg.norm(cells[:, None, :] - cells[None, :, :], axis=2)
-                <= env.cfg.backhaul_radius_cells
-            )
-            * counts[None, :]
-        ).sum(axis=1)
-        relay_prob = np.where(gateway <= max_bh + 1e-9, support + 1, 0.01).astype(float)
+        support = ((np.linalg.norm(cells[:, None, :] - cells[None, :, :], axis=2)
+                    <= env.cfg.backhaul_radius_cells) * counts[None, :]).sum(axis=1)
+        relay_prob = np.where(gateway <= max_bh + 1e-9, support + 1, .01).astype(float)
         relay_prob /= relay_prob.sum()
         cache = {}
         start_calls = self.calls
-
         def evaluate(positions, roles):
             key = (tuple(positions.ravel()), tuple(roles))
             if key not in cache:
@@ -70,12 +59,11 @@ class PrivilegedPlacementSearch:
                     return (-np.inf, -np.inf, -np.inf)
                 view.uav_positions = positions.copy()
                 view.roles = roles.copy()
-                utility = float(view.compute_network()["utility"])
+                utility = float(view.compute_network()['utility'])
                 self.calls += 1
                 travel = float(np.abs(positions[active] - env.uav_positions[active]).sum())
-                cache[key] = (utility - 0.0003 * travel, utility, -travel)
+                cache[key] = (utility - .0003 * travel, utility, -travel)
             return cache[key]
-
         positions, roles = env.uav_positions.copy(), env.roles.copy()
         best = evaluate(positions, roles)
         if self.targets is not None:
@@ -131,17 +119,9 @@ class PrivilegedPlacementSearch:
             if not changed or self.calls - start_calls >= self.budget:
                 break
         self.targets, self.target_roles = positions, roles
-        self.plans.append(
-            dict(
-                slot=int(env.t),
-                calls=self.calls - start_calls,
-                frozen_target_utility=float(best[1]),
-                travel_cells=float(-best[2]),
-                positions=positions.tolist(),
-                roles=roles.tolist(),
-                active=active.tolist(),
-            )
-        )
+        self.plans.append(dict(slot=int(env.t), calls=self.calls-start_calls,
+            frozen_target_utility=float(best[1]), travel_cells=float(-best[2]),
+            positions=positions.tolist(), roles=roles.tolist(), active=active.tolist()))
 
     def act(self, action_mask):
         env = self.env
@@ -157,16 +137,13 @@ class PrivilegedPlacementSearch:
             options = [int(a) for a in valid if int(a) % 2 == role]
             if not options:
                 options = list(map(int, valid))
-
             def key(action):
                 nxt = env.uav_positions[uid] + MOVE_DELTAS[action // 2]
                 # Discourage blocking an occupied cell, while collision handling
                 # and every actual movement remain owned by the environment.
-                blocked = any(
-                    j != uid and np.array_equal(nxt, pos) for j, pos in enumerate(env.uav_positions)
-                )
-                distance = int(np.abs(nxt - self.targets[uid]).sum())
-                return distance + 0.25 * blocked, action
-
+                blocked = any(j != uid and np.array_equal(nxt, pos)
+                              for j, pos in enumerate(env.uav_positions))
+                distance = int(np.abs(nxt-self.targets[uid]).sum())
+                return distance + .25 * blocked, action
             result.append(min(options, key=key))
         return result

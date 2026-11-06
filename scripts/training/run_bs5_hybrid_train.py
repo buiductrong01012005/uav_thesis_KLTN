@@ -33,7 +33,6 @@ from scripts.training.run_bs5_service_v2_pilot import (
     atomic_torch,
     digest,
     model_payload,
-    replace_file,
 )
 
 CONFIG = ROOT / "configs/bs5_hybrid_train120k.json"
@@ -222,7 +221,7 @@ def write_csv(path, rows):
         writer = csv.DictWriter(stream, fieldnames=fields)
         writer.writeheader()
         writer.writerows(rows)
-    replace_file(temp, path)
+    temp.replace(path)
 
 
 def evaluate(learner, p, step, output):
@@ -342,7 +341,7 @@ def evaluate(learner, p, step, output):
             np.savez_compressed(
                 stream, **{k: np.asarray(v) for k, v in arrays.items()}, ue_mean_rates=average
             )
-        replace_file(path.with_suffix(".tmp"), path)
+        path.with_suffix(".tmp").replace(path)
         rows.append(row)
     return rows
 

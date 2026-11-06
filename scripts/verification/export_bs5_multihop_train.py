@@ -64,7 +64,7 @@ def export(runs, output, run_id):
             for path in files:
                 if include_resume or path.name != "resume.pt":
                     z.write(path, path.relative_to(runs))
-        with temp.open("r+b") as f:
+        with temp.open("rb") as f:
             os.fsync(f.fileno())
         with zipfile.ZipFile(temp) as z:
             if z.testzip() is not None:

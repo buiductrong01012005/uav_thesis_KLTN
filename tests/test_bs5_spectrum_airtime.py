@@ -1,5 +1,4 @@
 """Analytical controls for interference PSD, flow conservation and radio conflicts."""
-
 import json
 from pathlib import Path
 
@@ -7,15 +6,8 @@ import numpy as np
 import pytest
 
 from src.diagnostics.bs5_spectrum_airtime import (
-    Edge,
-    access_rates,
-    allocate_flows,
-    audit_case,
-    fixture_env,
-    schedule_matrix,
-    spectral_rate,
-    spectrum_colors,
-    valid_half_duplex_state,
+    Edge, access_rates, allocate_flows, audit_case, fixture_env,
+    schedule_matrix, spectral_rate, spectrum_colors, valid_half_duplex_state,
 )
 
 ROOT = Path(__file__).resolve().parents[1]
@@ -68,12 +60,8 @@ def test_disconnected_flow_cannot_be_served():
 
 
 def test_conflicts_include_bs_beam_and_relay_receive_transmit():
-    edges = [
-        Edge("b0", "u0", 100),
-        Edge("b0", "u1", 100),
-        Edge("u0", "u2", 100),
-        Edge("b1", "u3", 100),
-    ]
+    edges = [Edge("b0", "u0", 100), Edge("b0", "u1", 100),
+             Edge("u0", "u2", 100), Edge("b1", "u3", 100)]
     assert not valid_half_duplex_state(edges, (0, 1))  # same donor radio
     assert not valid_half_duplex_state(edges, (0, 2))  # Relay cannot RX+TX
     assert valid_half_duplex_state(edges, (0, 3))
@@ -117,14 +105,8 @@ def test_interference_is_not_cut_off_at_association_radius():
 
 def test_routes_schedule_and_all_rates_match_in_full_case():
     env = fixture_env("relay_corridor", "3A2R", CONFIG)
-    metric, detail = audit_case(
-        env,
-        access_bw=15,
-        backhaul_bw=40,
-        spectrum_mode="reuse1",
-        backhaul_mode="shared_half_duplex",
-        efficiency=0.75,
-    )
+    metric, detail = audit_case(env, access_bw=15, backhaul_bw=40, spectrum_mode="reuse1",
+                               backhaul_mode="shared_half_duplex", efficiency=0.75)
     assert metric["delivered_mbps"] == pytest.approx(sum(detail["ue_delivered_rates"]))
     assert metric["delivered_mbps"] <= metric["access_offer_mbps"] + 1e-6
     assert metric["schedule_time_sum"] <= 1 + 1e-6

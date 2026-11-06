@@ -1,5 +1,4 @@
 """Physical/accounting checks for the new offline audit, no long rollouts."""
-
 import json
 from pathlib import Path
 
@@ -7,21 +6,12 @@ import numpy as np
 import pytest
 
 from src.diagnostics.bs5_resource_audit import (
-    access_raw_rate,
-    backhaul_rates,
-    gateway_design,
-    hybrid_energy,
-    hybrid_flow_budget,
-    make_radio,
-    minimum_access_bandwidth,
-    shared_relay_scene,
-    static_scene,
+    access_raw_rate, backhaul_rates, gateway_design, hybrid_energy,
+    hybrid_flow_budget, make_radio, minimum_access_bandwidth, shared_relay_scene, static_scene,
 )
 
 ROOT = Path(__file__).resolve().parents[1]
-PROFILES = json.loads((ROOT / "configs/bs5_resource_audit_v1.json").read_text())[
-    "resource_profiles"
-]
+PROFILES = json.loads((ROOT / "configs/bs5_resource_audit_v1.json").read_text())["resource_profiles"]
 
 
 def test_fixed_total_power_and_bandwidth_sharing_not_per_ue_subsidy():
@@ -44,9 +34,7 @@ def test_inverse_bandwidth_matches_target_at_fixed_power():
     assert minimum_access_bandwidth(env, distance_m=200, users=25, target_mbps=4) is None
 
 
-@pytest.mark.parametrize(
-    "access,gateway,users", [(0, 0, 25), (200, 300, 25), (201, 100, 25), (0, 0, 30)]
-)
+@pytest.mark.parametrize("access,gateway,users", [(0, 0, 25), (200, 300, 25), (201, 100, 25), (0, 0, 30)])
 def test_real_router_conserves_demand_with_disjoint_loss_waterfall(access, gateway, users):
     row = static_scene(PROFILES[0], users, access, gateway)
     assert row["conservation_residual_mbps"] == pytest.approx(0, abs=1e-8)

@@ -521,8 +521,6 @@ def test_blocked_run_stops_before_models_or_environment(tmp_path, monkeypatch):
 def test_kaggle_notebook_discovers_extracted_source_and_stops_missing_weights(
     tmp_path, monkeypatch
 ):
-    if not (runner.ROOT / 'scripts/notebooks/bs5_continuous_eval600_kaggle.ipynb').is_file():
-        pytest.skip("Notebook fixtures are local and are not distributed with source.")
     notebook = json.loads(
         (runner.ROOT / "scripts/notebooks/bs5_continuous_eval600_kaggle.ipynb").read_text()
     )

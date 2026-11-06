@@ -1,5 +1,4 @@
 """v2 lifecycle and observation causality controls, no long training."""
-
 from copy import deepcopy
 
 import numpy as np
@@ -66,7 +65,7 @@ def test_old_report_expires_and_reset_discards_old_episode_packets():
     env.step([8] * 5)
     env.reset(seed=910802)
     assert env.t == 0
-    assert all(p["source_t"] == 0 for p in env.reports.queue)
+    assert all(p['source_t'] == 0 for p in env.reports.queue)
 
 
 def test_unavailable_relay_is_never_in_dynamic_radio_graph():
@@ -79,9 +78,9 @@ def test_unavailable_relay_is_never_in_dynamic_radio_graph():
     env._in_step = True
     env.compute_network()
     env._in_step = False
-    for edge in env.last_v2_radio_detail["edges"]:
-        assert edge["source"] not in {"u0", "u1"}
-        assert edge["target"] not in {"u0", "u1"}
+    for edge in env.last_v2_radio_detail['edges']:
+        assert edge['source'] not in {'u0', 'u1'}
+        assert edge['target'] not in {'u0', 'u1'}
 
 
 def test_schedule_conservation_with_actual_service_and_return_controller():
@@ -89,14 +88,14 @@ def test_schedule_conservation_with_actual_service_and_return_controller():
     for _ in range(12):
         out = env.step([9, 9, 8, 8, 8])
         net = env.last_v2_network
-        assert float(np.sum(net["ue_rate_mbps"])) == pytest.approx(out["info"]["utility"] * 360)
-        assert net["schedule_time_sum"] <= 1 + 1e-6
-        assert out["info"]["return_control"]["version"].endswith("v4_commit")
+        assert float(np.sum(net['ue_rate_mbps'])) == pytest.approx(out['info']['utility'] * 360)
+        assert net['schedule_time_sum'] <= 1 + 1e-6
+        assert out['info']['return_control']['version'].endswith('v4_commit')
         assert np.all(env.battery >= 0)
         detail = env.last_v2_radio_detail
-        edges = [Edge(**e) for e in detail["edges"]]
-        for state in detail["schedules"]:
-            assert valid_half_duplex_state(edges, tuple(state["active_edges"]))
+        edges = [Edge(**e) for e in detail['edges']]
+        for state in detail['schedules']:
+            assert valid_half_duplex_state(edges, tuple(state['active_edges']))
 
 
 def test_preview_does_not_mutate_report_memory_or_last_committed_telemetry():
@@ -110,33 +109,23 @@ def test_preview_does_not_mutate_report_memory_or_last_committed_telemetry():
 
 
 def test_qos_reward_is_explicit_ablation_and_not_utility_relabeling():
-    a, b = make(), make(reward_mode="qos_outage")
-    oa, ob = a.step([8] * 5), b.step([8] * 5)
-    assert oa["reward"] == oa["info"]["utility"]
-    assert ob["reward"] == pytest.approx(
-        ob["info"]["utility"]
-        + 0.25 * ob["info"]["qos_fraction"]
-        - 0.1 * ob["info"]["ue_outage_fraction"]
-    )
-    assert oa["info"]["utility"] == ob["info"]["utility"]
+    a, b = make(), make(reward_mode='qos_outage')
+    oa, ob = a.step([8]*5), b.step([8]*5)
+    assert oa['reward'] == oa['info']['utility']
+    assert ob['reward'] == pytest.approx(ob['info']['utility'] + .25*ob['info']['qos_fraction'] - .1*ob['info']['ue_outage_fraction'])
+    assert oa['info']['utility'] == ob['info']['utility']
 
 
 def test_observation_reports_survive_deepcopy_for_checkpoint_resume():
     env = make()
-    for _ in range(5):
-        env.step([8] * 5)
+    for _ in range(5):env.step([8]*5)
     clone = deepcopy(env)
-    a, b = env.step([8] * 5), clone.step([8] * 5)
-    assert np.array_equal(a["obs"], b["obs"])
-    assert np.array_equal(a["state"], b["state"])
+    a, b = env.step([8]*5), clone.step([8]*5)
+    assert np.array_equal(a['obs'], b['obs'])
+    assert np.array_equal(a['state'], b['state'])
 
 
 def test_service_configs_reject_invalid_timing_and_fractions():
-    for fields in [
-        {"report_delay_slots": -1},
-        {"report_period_slots": 0},
-        {"access_occupied_fraction": 0},
-        {"backhaul_total_mhz": -1},
-    ]:
-        with pytest.raises(ValueError):
-            ServiceV2Config(**fields)
+    for fields in [{'report_delay_slots': -1}, {'report_period_slots': 0},
+                   {'access_occupied_fraction': 0}, {'backhaul_total_mhz': -1}]:
+        with pytest.raises(ValueError):ServiceV2Config(**fields)

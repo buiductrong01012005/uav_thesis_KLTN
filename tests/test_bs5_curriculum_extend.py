@@ -355,8 +355,6 @@ def test_no_relay_bootstrap_ignores_illegal_high_q():
 
 
 def test_kaggle_cells_find_extracted_parents_and_resume(tmp_path, monkeypatch):
-    if not (ROOT / 'scripts/notebooks/bs5_curriculum_extend_60k_kaggle.ipynb').is_file():
-        pytest.skip("Notebook fixtures are local and are not distributed with source.")
     notebook = read_json(ROOT / "scripts/notebooks/bs5_curriculum_extend_60k_kaggle.ipynb")
     cells = ["".join(c["source"]) for c in notebook["cells"] if c["cell_type"] == "code"]
     assert len(cells) == 4

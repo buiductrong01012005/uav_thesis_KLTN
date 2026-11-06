@@ -5,7 +5,6 @@ Access interference and a globally feasible half-duplex backhaul schedule.
 The LP is an offline oracle for fixed association/routes, not an online policy.
 No env.step(), battery trajectory, weights or test scenario is used.
 """
-
 from __future__ import annotations
 
 import itertools
@@ -30,20 +29,13 @@ def dbm_to_mw(dbm):
     return np.power(10.0, np.asarray(dbm) / 10)
 
 
-def spectral_rate(
-    signal_mw: float,
-    interference_mw: float,
-    noise_mw: float,
-    bandwidth_hz: float,
-    efficiency: float = 1.0,
-) -> float:
+def spectral_rate(signal_mw: float, interference_mw: float, noise_mw: float,
+                  bandwidth_hz: float, efficiency: float = 1.0) -> float:
     if signal_mw < 0 or interference_mw < 0 or noise_mw <= 0 or bandwidth_hz <= 0:
         raise ValueError("Invalid radio budget")
     if not 0 < efficiency <= 1:
         raise ValueError("Efficiency outside (0,1]")
-    return float(
-        efficiency * bandwidth_hz * np.log2(1 + signal_mw / (noise_mw + interference_mw)) / 1e6
-    )
+    return float(efficiency * bandwidth_hz * np.log2(1 + signal_mw / (noise_mw + interference_mw)) / 1e6)
 
 
 def fixture_env(name: str, roles: str, config: dict):
@@ -55,9 +47,7 @@ def fixture_env(name: str, roles: str, config: dict):
     env.roles[:] = ACCESS
     env.roles[ROLE_FIXTURES[roles]] = RELAY
     # Same UE geometry for every role/resource choice, no reset/RNG leakage.
-    rng = np.random.default_rng(
-        np.random.SeedSequence([config["diagnostic_seed"], list(LAYOUTS).index(name)])
-    )
+    rng = np.random.default_rng(np.random.SeedSequence([config["diagnostic_seed"], list(LAYOUTS).index(name)]))
     centers = np.asarray(LAYOUTS[name], dtype=float)
     group = np.arange(config["users"]) % 5
     radius = rng.uniform(0, 1.2, config["users"])
@@ -73,14 +63,8 @@ def spectrum_colors(env, ids: list[int]) -> dict[int, int]:
     Distant same-color transmitters still contribute interference in the radio
     calculation. The conflict graph is a planning heuristic, not an RF cutoff.
     """
-    conflicts = [
-        (i, j)
-        for i, a in enumerate(ids)
-        for j, b in enumerate(ids)
-        if i < j
-        and np.linalg.norm(env.uav_positions[a] - env.uav_positions[b])
-        <= 2 * env.cfg.access_radius_cells + 1e-9
-    ]
+    conflicts = [(i, j) for i, a in enumerate(ids) for j, b in enumerate(ids) if i < j
+                 and np.linalg.norm(env.uav_positions[a] - env.uav_positions[b]) <= 2 * env.cfg.access_radius_cells + 1e-9]
     for count in range(1, len(ids) + 1):
         for tail in itertools.product(range(count), repeat=max(0, len(ids) - 1)):
             colors = (0,) + tail
@@ -96,12 +80,7 @@ def access_rates(env, association: dict, bandwidth_mhz: float, mode: str, effici
     Orthogonal modes have disjoint bands; reuse1 fully overlaps all UAV bands.
     Each serving UAV retains fixed total power split across its associated UEs.
     """
-    if bandwidth_mhz <= 0 or mode not in {
-        "orthogonal_pool",
-        "orthogonal_per_uav",
-        "reuse1",
-        "colored_reuse",
-    }:
+    if bandwidth_mhz <= 0 or mode not in {"orthogonal_pool", "orthogonal_per_uav", "reuse1", "colored_reuse"}:
         raise ValueError("Unknown spectrum allocation")
     cfg = env.cfg
     ids = sorted(association)
@@ -111,9 +90,7 @@ def access_rates(env, association: dict, bandwidth_mhz: float, mode: str, effici
     if not count:
         return rates, sinr_db, {}
     per_uav_bw = bandwidth_mhz * 1e6 / count if mode == "orthogonal_pool" else bandwidth_mhz * 1e6
-    colors = (
-        spectrum_colors(env, ids) if mode == "colored_reuse" else {a: j for j, a in enumerate(ids)}
-    )
+    colors = spectrum_colors(env, ids) if mode == "colored_reuse" else {a: j for j, a in enumerate(ids)}
     tx = float(dbm_to_mw(cfg.access_tx_dbm))
     emitting = [a for a in ids if association[a]]
     for aid in ids:
@@ -121,18 +98,11 @@ def access_rates(env, association: dict, bandwidth_mhz: float, mode: str, effici
         if not users:
             continue
         user_bw = per_uav_bw / len(users)
-        noise = float(
-            dbm_to_mw(cfg.noise_psd_dbm_hz + 10 * np.log10(user_bw) + cfg.noise_figure_db)
-        )
+        noise = float(dbm_to_mw(cfg.noise_psd_dbm_hz + 10 * np.log10(user_bw) + cfg.noise_figure_db))
         for u in users:
             ue_xy = env._cell_to_xy(env.ue_positions[u])
-            loss = env._a2g_path_loss_db(
-                ue_xy,
-                cfg.ue_height_m,
-                env._cell_to_xy(env.uav_positions[aid]),
-                cfg.uav_altitude_m,
-                cfg.access_fc_hz,
-            )
+            loss = env._a2g_path_loss_db(ue_xy, cfg.ue_height_m, env._cell_to_xy(env.uav_positions[aid]),
+                                        cfg.uav_altitude_m, cfg.access_fc_hz)
             signal = tx * 10 ** (-loss / 10) / len(users)
             interference = 0.0
             if mode in {"reuse1", "colored_reuse"}:
@@ -140,30 +110,19 @@ def access_rates(env, association: dict, bandwidth_mhz: float, mode: str, effici
                     if other == aid or (mode == "colored_reuse" and colors[other] != colors[aid]):
                         continue
                     other_loss = env._a2g_path_loss_db(
-                        ue_xy,
-                        cfg.ue_height_m,
-                        env._cell_to_xy(env.uav_positions[other]),
-                        cfg.uav_altitude_m,
-                        cfg.access_fc_hz,
+                        ue_xy, cfg.ue_height_m, env._cell_to_xy(env.uav_positions[other]),
+                        cfg.uav_altitude_m, cfg.access_fc_hz,
                     )
                     interference += tx * 10 ** (-other_loss / 10) * user_bw / per_uav_bw
             sinr_db[u] = 10 * np.log10(signal / (noise + interference))
-            rates[u] = min(
-                cfg.ue_demand_mbps, spectral_rate(signal, interference, noise, user_bw, efficiency)
-            )
+            rates[u] = min(cfg.ue_demand_mbps,
+                           spectral_rate(signal, interference, noise, user_bw, efficiency))
     budget = dict(
         access_per_uav_mhz=per_uav_bw / 1e6,
-        access_distinct_used_mhz=bandwidth_mhz
-        * (
-            len(set(colors.values()))
-            if mode == "colored_reuse"
-            else count
-            if mode == "orthogonal_per_uav"
-            else 1
+        access_distinct_used_mhz=bandwidth_mhz * (
+            len(set(colors.values())) if mode == "colored_reuse" else count if mode == "orthogonal_per_uav" else 1
         ),
-        access_reserved_fleet_mhz=bandwidth_mhz * 5
-        if mode in {"orthogonal_per_uav", "colored_reuse"}
-        else bandwidth_mhz,
+        access_reserved_fleet_mhz=bandwidth_mhz * 5 if mode in {"orthogonal_per_uav", "colored_reuse"} else bandwidth_mhz,
         emitting_access_uavs=len(emitting),
     )
     return rates, sinr_db, budget
@@ -207,10 +166,7 @@ def build_routes(env, association: dict, bandwidth_mhz: float, efficiency: float
     relays = np.flatnonzero(env.roles == RELAY)
 
     def possible(source, target):
-        return (
-            np.linalg.norm(node_position(env, source)[0] - node_position(env, target)[0])
-            <= cfg.backhaul_radius_cells * cfg.cell_size_m + 1e-9
-        )
+        return np.linalg.norm(node_position(env, source)[0] - node_position(env, target)[0]) <= cfg.backhaul_radius_cells * cfg.cell_size_m + 1e-9
 
     def cap(source, target):
         return spectral_rate(tx * link_gain(env, source, target), 0, noise, bw, efficiency)
@@ -226,9 +182,7 @@ def build_routes(env, association: dict, bandwidth_mhz: float, efficiency: float
             for r in relays:
                 relay = f"u{r}"
                 if possible(bs, relay) and possible(relay, target):
-                    candidates.append(
-                        (min(cap(bs, relay), cap(relay, target)), ((bs, relay), (relay, target)))
-                    )
+                    candidates.append((min(cap(bs, relay), cap(relay, target)), ((bs, relay), (relay, target))))
         if not candidates:
             paths[aid] = []
             continue
@@ -250,16 +204,11 @@ def valid_half_duplex_state(edges: list[Edge], active: tuple[int, ...]) -> bool:
 def schedule_matrix(env, edges: list[Edge], bandwidth_mhz: float, efficiency: float, mode: str):
     if mode == "ideal_parallel_bound":
         # Deliberately optimistic, not physically feasible on a single radio.
-        return np.asarray([[e.solo_mbps] for e in edges]).reshape(len(edges), 1), [
-            tuple(range(len(edges)))
-        ]
+        return np.asarray([[e.solo_mbps] for e in edges]).reshape(len(edges), 1), [tuple(range(len(edges)))]
     if mode != "shared_half_duplex":
         raise ValueError("Unknown backhaul mode")
-    states = [
-        tuple(i for i, flag in enumerate(mask) if flag)
-        for mask in itertools.product([0, 1], repeat=len(edges))
-        if any(mask)
-    ]
+    states = [tuple(i for i, flag in enumerate(mask) if flag)
+              for mask in itertools.product([0, 1], repeat=len(edges)) if any(mask)]
     states = [state for state in states if valid_half_duplex_state(edges, state)]
     matrix = np.zeros((len(edges), len(states)))
     bw = bandwidth_mhz * 1e6
@@ -269,12 +218,9 @@ def schedule_matrix(env, edges: list[Edge], bandwidth_mhz: float, efficiency: fl
     for j, active in enumerate(states):
         for i in active:
             edge = edges[i]
-            interference = sum(
-                tx * link_gain(env, edges[k].source, edge.target) for k in active if k != i
-            )
-            matrix[i, j] = spectral_rate(
-                tx * link_gain(env, edge.source, edge.target), interference, noise, bw, efficiency
-            )
+            interference = sum(tx * link_gain(env, edges[k].source, edge.target) for k in active if k != i)
+            matrix[i, j] = spectral_rate(tx * link_gain(env, edge.source, edge.target),
+                                         interference, noise, bw, efficiency)
     return matrix, states
 
 
@@ -302,11 +248,11 @@ def allocate_flows(offers: dict[int, float], paths: dict[int, list[int]], capaci
     for e in range(edges):
         row = np.zeros(size)
         row[:n] = demand[e]
-        row[n : n + states] = -capacities[e]
+        row[n:n + states] = -capacities[e]
         constraints.append(row)
         rhs.append(0.0)
     row = np.zeros(size)
-    row[n : n + states] = 1
+    row[n:n + states] = 1
     constraints.append(row)
     rhs.append(1.0)
     for j in eligible:
@@ -330,27 +276,18 @@ def allocate_flows(offers: dict[int, float], paths: dict[int, list[int]], capaci
     b_ub = np.append(b_ub, -max(0, maximum_total - 1e-8))
     objective[:] = 0
     objective[-1] = -1
-    second = linprog(
-        objective, A_ub=a_ub, b_ub=b_ub, bounds=bounds, method="highs", options=options
-    )
+    second = linprog(objective, A_ub=a_ub, b_ub=b_ub, bounds=bounds, method="highs", options=options)
     if not second.success:
         raise RuntimeError(second.message)
     violation = max(0.0, float(np.max(a_ub @ second.x - b_ub)))
     if violation > 1e-6:
         raise AssertionError(f"Infeasible LP result: {violation}")
     minimum = float(second.x[-1])
-    return dict(zip(ids, second.x[:n])), second.x[n : n + states], minimum, violation
+    return dict(zip(ids, second.x[:n])), second.x[n:n + states], minimum, violation
 
 
-def audit_case(
-    env,
-    *,
-    access_bw: float,
-    backhaul_bw: float,
-    spectrum_mode: str,
-    backhaul_mode: str,
-    efficiency: float,
-):
+def audit_case(env, *, access_bw: float, backhaul_bw: float, spectrum_mode: str,
+               backhaul_mode: str, efficiency: float):
     legacy = env.compute_network()
     association = legacy["association"]  # matched, legacy capped signal-strength association
     before, sinr, spectrum = access_rates(env, association, access_bw, spectrum_mode, efficiency)
@@ -368,46 +305,25 @@ def audit_case(
         raise AssertionError("Delivered data exceeds offer/demand")
     sinr_present = sinr[np.isfinite(sinr)]
     metric = dict(
-        access_bw_label_mhz=access_bw,
-        backhaul_total_bandwidth_mhz=backhaul_bw,
-        spectrum_mode=spectrum_mode,
-        backhaul_mode=backhaul_mode,
-        rate_efficiency=efficiency,
-        access_tx_dbm=env.cfg.access_tx_dbm,
-        backhaul_tx_dbm=env.cfg.backhaul_tx_dbm,
-        access_offer_mbps=totals,
-        delivered_mbps=served,
-        backhaul_loss_mbps=max(0, totals - served),
-        utility=served / (env.cfg.num_ues * env.cfg.ue_demand_mbps),
+        access_bw_label_mhz=access_bw, backhaul_total_bandwidth_mhz=backhaul_bw,
+        spectrum_mode=spectrum_mode, backhaul_mode=backhaul_mode, rate_efficiency=efficiency,
+        access_tx_dbm=env.cfg.access_tx_dbm, backhaul_tx_dbm=env.cfg.backhaul_tx_dbm,
+        access_offer_mbps=totals, delivered_mbps=served,
+        backhaul_loss_mbps=max(0, totals - served), utility=served / (env.cfg.num_ues * env.cfg.ue_demand_mbps),
         associated_ues=sum(len(users) for users in association.values()),
         positive_service_ues=int(np.sum(final > 1e-7)),
         qos_ues=int(np.sum(final >= env.cfg.ue_demand_mbps - 1e-6)),
         sinr_median_db=None if not len(sinr_present) else float(np.median(sinr_present)),
         reachable_access_uavs=sum(bool(paths[a]) and offers[a] > 0 for a in association),
         relay_routes=sum(len(path) == 2 for path in paths.values()),
-        edge_count=len(edges),
-        schedule_states=len(states),
-        schedule_time_sum=float(durations.sum()),
-        min_access_offer_fulfillment=minimum,
-        lp_constraint_violation_mbps=violation,
-        **spectrum,
+        edge_count=len(edges), schedule_states=len(states), schedule_time_sum=float(durations.sum()),
+        min_access_offer_fulfillment=minimum, lp_constraint_violation_mbps=violation, **spectrum,
     )
     detail = dict(
-        association=association,
-        paths=paths,
-        access_offers=offers,
-        access_flows=allocated,
-        ue_access_rates=before.tolist(),
-        ue_delivered_rates=final.tolist(),
+        association=association, paths=paths, access_offers=offers, access_flows=allocated,
+        ue_access_rates=before.tolist(), ue_delivered_rates=final.tolist(),
         edges=[dict(source=e.source, target=e.target, solo_mbps=e.solo_mbps) for e in edges],
-        schedules=[
-            dict(
-                active_edges=list(active),
-                duration=float(durations[j]),
-                capacity_mbps=matrix[:, j].tolist(),
-            )
-            for j, active in enumerate(states)
-            if durations[j] > 1e-10
-        ],
+        schedules=[dict(active_edges=list(active), duration=float(durations[j]),
+                        capacity_mbps=matrix[:, j].tolist()) for j, active in enumerate(states) if durations[j] > 1e-10],
     )
     return metric, detail

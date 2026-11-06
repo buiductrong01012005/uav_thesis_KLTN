@@ -4,10 +4,7 @@ Only hash-pinned C-N reference checkpoints may use the legacy-checkpoint path.
 This reuses historical C-N training, never pretends it was trained multi-hop.
 """
 
-import argparse
-import hashlib
-import json
-import sys
+import argparse, hashlib, json, sys
 from pathlib import Path
 
 ROOT = Path(__file__).resolve().parents[2]

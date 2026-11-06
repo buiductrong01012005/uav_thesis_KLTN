@@ -1,17 +1,8 @@
 from pathlib import Path
-
-if __package__:
-    from ._notebook import make_notebook, normalized_cell, write_notebook
-else:
-    from _notebook import make_notebook, normalized_cell, write_notebook
-ROOT = Path(__file__).resolve().parents[2]
-
-
-def build(output_directory=None):
-    blocks = [
-        (
-            "markdown",
-            """
+import json,textwrap
+ROOT=Path(__file__).resolve().parents[2]
+def build():
+ blocks=[('markdown','''
  # Return-v4: eval lại C-R60k / C-N36k, không train
 
  Tạo Kaggle Dataset từ **BS5_RETURN_V4_PAIR_DATASET.zip**, import notebook này, Add Input Dataset, dùng **CPU**, bật Internet nếu cần thư viện và **Run All**. Không cần upload các ZIP audit cũ.
@@ -19,13 +10,8 @@ def build(output_directory=None):
  Dataset có2 checkpoint đã xác minh,20 exact UE tape10k và kết quả v3 để đối chiếu. Chỉ controller Return đổi: giữ route khi next hop trống, replan khi bị chặn, tránh ô vừa rời nếu có đường khác. Reward, energy/margin, charger, collision-v2, router và actor inputs giữ nguyên.
 
  Mặc định40 game/400k eval slot, **train=0**, epsilon0, một reset/game, weights frozen. Giữ tên nhóm seen/previously-heldout để so cùng trace; đây là controller sensitivity trên các trace đã xem, chưa phải fresh untouched test hoặc xác nhận nhiều training seed.
- """,
-        )
-    ]
-    blocks.append(
-        (
-            "code",
-            """
+ ''')]
+ blocks.append(('code','''
  from pathlib import Path
  SOURCE_PATH = None
  RESUME_INPUT_DIR = None  # thư mục export chứa EXPORT_INDEX.json + mọi evidence ZIP
@@ -33,13 +19,8 @@ def build(output_directory=None):
  MAX_SESSION_SECONDS = 7 * 3600  # soft limit main, dừng ở game boundary; chừa thời gian export
  AUTO_INSTALL_MISSING_DEPS = True
  RUN_EVAL = True
- """,
-        )
-    )
-    blocks.append(
-        (
-            "code",
-            """
+ '''))
+ blocks.append(('code','''
  import os,sys,json,zipfile,hashlib,shutil,subprocess
  os.environ['PYTHONDONTWRITEBYTECODE']='1';sys.dont_write_bytecode=True
  WORK=Path('/kaggle/working');INPUT=Path('/kaggle/input');WORK.mkdir(parents=True,exist_ok=True)
@@ -74,13 +55,8 @@ def build(output_directory=None):
  assert data==expected,'Dataset khác source đang dùng; giữ output và dùng source sạch'
  for rel,digest in json.loads(data).items():assert hashlib.sha256((SOURCE_ROOT/rel).read_bytes()).hexdigest()==digest,rel
  print('Verified v4 Dataset:',SOURCE_ROOT)
- """,
-        )
-    )
-    blocks.append(
-        (
-            "code",
-            """
+ '''))
+ blocks.append(('code','''
  DEPS=WORK/'bs5_return_v4_cpu_runtime'
  ENV=os.environ.copy();ENV.update(PYTHONDONTWRITEBYTECODE='1',PYTEST_DISABLE_PLUGIN_AUTOLOAD='1',OMP_NUM_THREADS='1',MKL_NUM_THREADS='1',OPENBLAS_NUM_THREADS='1')
  ENV['PYTHONPATH']=str(DEPS)+os.pathsep+str(SOURCE_ROOT)
@@ -98,13 +74,8 @@ def build(output_directory=None):
          p=subprocess.Popen([sys.executable,'-B','-u',*map(str,args)],cwd=SOURCE_ROOT,env=ENV,stdout=subprocess.PIPE,stderr=subprocess.STDOUT,text=True,bufsize=1)
          for line in p.stdout:print(line,end='',flush=True);f.write(line);f.flush()
          return p.wait()
- """,
-        )
-    )
-    blocks.append(
-        (
-            "code",
-            """
+ '''))
+ blocks.append(('code','''
  if RESUME_INPUT_DIR is not None:
      src=Path(RESUME_INPUT_DIR)
      if OUTPUT_ROOT.exists():raise RuntimeError('Không chép đè output hiện có; cùng phiên hãy đặt RESUME_INPUT_DIR=None')
@@ -124,13 +95,8 @@ def build(output_directory=None):
  rc=run_stream(['scripts/verification/preflight_bs5_return_v4.py','--output',PREFLIGHT],WORK/'return_v4_preflight.log')
  if rc:raise RuntimeError('Preflight chưa PASS; main chưa chạy. Giữ receipt/log, không xóa ledger để lặp compute.')
  print('Preflight PASS:',json.loads((PREFLIGHT/'receipt.json').read_text()))
- """,
-        )
-    )
-    blocks.append(
-        (
-            "code",
-            """
+ '''))
+ blocks.append(('code','''
  MAIN_RETURN_CODE=0
  if RUN_EVAL:
      if not OUTPUT_ROOT.exists():
@@ -145,13 +111,8 @@ def build(output_directory=None):
      print('Status:',json.loads((OUTPUT_ROOT/'status.json').read_text()))
      if MAIN_RETURN_CODE:print('Có lỗi; vẫn export evidence bên dưới. Giữ mọi ledger và log.')
  else:print('RUN_EVAL=False: chỉ chạy bounded preflight')
- """,
-        )
-    )
-    blocks.append(
-        (
-            "code",
-            """
+ '''))
+ blocks.append(('code','''
  if RUN_EVAL and (OUTPUT_ROOT/'protocol.json').exists():
      before=set(WORK.glob(OUTPUT_ROOT.name+'_export*'))
      rc=run_stream(['scripts/experiments/run_bs5_return_v4_pair.py','export','--output',OUTPUT_ROOT],WORK/'return_v4_export.log')
@@ -164,13 +125,8 @@ def build(output_directory=None):
      for f in sorted(EXPORT.iterdir()):
          if f.is_file():display(FileLink(str(f)))
  if MAIN_RETURN_CODE:raise RuntimeError('Main failed; đã giữ/export evidence. Không reset budget để lặp game.')
- """,
-        )
-    )
-    blocks.append(
-        (
-            "markdown",
-            """
+ '''))
+ blocks.append(('markdown','''
  ## Tiếp tục / kiểm sâu
 
  - `complete`: đủ40game/400k eval, train=0. Đọc before_after.csv để so v3/v4 theo từng policy/trace.
@@ -180,16 +136,12 @@ def build(output_directory=None):
  - Export compact giữ exact float32 actor inputs, float64 rates và đầy đủ Return/collision telemetry. UE tape nằm trong input Dataset với hash khóa, giúp giảm số ZIP so bộ trước.
  - Analyzer offline: `python -B MERGED/bs5_return_v4_results.py --root MERGED --output ANALYSIS --deep-planner --require-complete`. Chỉ NumPy+stdlib, không Torch/env/rollout.
  - Giữ QoS4Mbps và censoring trong so sánh; không chỉ chọn utility. Sửa ca đã biết không chứng minh mọi cấu hình động đều an toàn.
- """,
-        )
-    )
-    cells = [normalized_cell(kind, text, f"return-v4-{i}") for i, (kind, text) in enumerate(blocks)]
-    notebook = make_notebook(cells)
-    directory = (
-        Path(output_directory) if output_directory is not None else ROOT / "scripts/notebooks"
-    )
-    return write_notebook(directory / "bs5_return_v4_pair_kaggle.ipynb", notebook)
-
-
-if __name__ == "__main__":
-    print(build())
+ '''))
+ cells=[]
+ for i,(kind,text) in enumerate(blocks):
+     c=dict(cell_type=kind,id=f'return-v4-{i}',metadata={},source=textwrap.dedent(text).strip().splitlines(keepends=True))
+     if kind=='code':c.update(execution_count=None,outputs=[])
+     cells.append(c)
+ nb=dict(cells=cells,metadata=dict(kernelspec=dict(display_name='Python 3',language='python',name='python3'),language_info=dict(name='python',version='3')),nbformat=4,nbformat_minor=5)
+ p=ROOT/'scripts/notebooks/bs5_return_v4_pair_kaggle.ipynb';p.write_text(json.dumps(nb,indent=1,ensure_ascii=False));return p
+if __name__=='__main__':print(build())

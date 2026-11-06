@@ -11,7 +11,7 @@ import zipfile
 import numpy as np
 import torch
 from scripts.experiments.bs5_v4_fresh_common import (
-    atomic_json, env_for, full_condition, read_json, setup, file_hash, source_identity,
+    atomic_json, env_for, full_condition, read_json, setup, file_hash,
 )
 from scripts.training import run_bs5_v4_fresh_train as train
 from scripts.evaluation import run_bs5_v4_benchmark as benchmark
@@ -185,22 +185,21 @@ class FreshV4Tests(unittest.TestCase):
         setup("cpu")
 
     def test_09_notebook_source_discovery_and_resume_transport(self):
-        if not (Path(__file__).resolve().parents[1] / 'scripts/notebooks/bs5_return_v4_fresh_train_kaggle.ipynb').is_file():
-            self.skipTest("Notebook fixtures are local and are not distributed with source.")
         project = Path(__file__).resolve().parents[1]
         simulation = self.base / "kaggle_sim"
         inputs, work = simulation / "input", simulation / "working"
         inputs.mkdir(parents=True)
         work.mkdir()
-        # Build the test Dataset from this checkout, without a generated root file.
-        data = source_identity()["files"]
+        manifest = project / "DATASET_MANIFEST.json"
+        self.assertTrue(manifest.exists(), "Build the Dataset manifest before preflight.")
+        data = read_json(manifest)
         archive = inputs / "source_dataset.zip"
         with zipfile.ZipFile(archive, "w", zipfile.ZIP_DEFLATED) as z:
             for rel in data:
                 z.write(project / rel, "uav_thesis/" + rel)
-            z.writestr("uav_thesis/DATASET_MANIFEST.json", json.dumps(data))
+            z.write(manifest, "uav_thesis/DATASET_MANIFEST.json")
         notebook = read_json(project / "scripts/notebooks/bs5_return_v4_fresh_train_kaggle.ipynb")
-        code = "".join(notebook["cells"][2]["source"]).replace("/kaggle", simulation.as_posix())
+        code = "".join(notebook["cells"][2]["source"]).replace("/kaggle", str(simulation))
         # Kaggle has Torch in the kernel environment. This CPU CI host supplies
         # the same installed test runtime via PYTHONPATH instead.
         runtime_home = str(Path(torch.__file__).resolve().parent.parent)
@@ -229,6 +228,7 @@ class FreshV4Tests(unittest.TestCase):
 
     def test_10_parallel_partitions_match_sequential_and_merge(self):
         from scripts.experiments.merge_bs5_v4_training import merge
+        import shutil
         inputs = []
         for arm in ["C-R", "C-N"]:
             for seed in [955551, 955552]:
@@ -294,17 +294,13 @@ class FreshV4Tests(unittest.TestCase):
         self.assertEqual(receipt["final_test_steps"], 0)
         self.assertEqual(receipt["diagnostic_slots"], 56)
 
-    def test_12_partition_preflight(self):
+    def test_12_partition_preflight_and_notebook_scopes(self):
         from scripts.verification.preflight_bs5_v4_partition import check
         receipt = check(self.base / "partition_preflight", ["C-N"], [552], "cpu")
         self.assertEqual(receipt["status"], "passed")
         self.assertEqual(receipt["main_training_steps"], 0)
         self.assertEqual(receipt["benchmark_steps"], 0)
-
-    def test_13_local_partition_notebook_scopes(self):
         project = Path(__file__).resolve().parents[1]
-        if not (project / "scripts/notebooks/bs5_return_v4_train_CR_551_kaggle.ipynb").is_file():
-            self.skipTest("Notebook fixtures are local and are not distributed with source.")
         seen = set()
         for arm in ["CR", "CN"]:
             for seed in [551, 552]:

@@ -4,7 +4,6 @@ Common role enumeration sees ONLY the delayed shared report. Local movement
 replaces only the acting UAV's state with its own current observation. The
 independent radio model receives synthetic UE locations, never simulator UEs.
 """
-
 from copy import copy
 from itertools import product, permutations
 import hashlib
@@ -58,7 +57,7 @@ class DelayedDynamicRole:
         flat = counts.ravel()
         n = np.floor(flat).astype(int)
         target_n = min(90, int(round(float(flat.sum()))))
-        for k in np.argsort(-(flat - n), kind="stable")[: max(0, target_n - n.sum())]:
+        for k in np.argsort(-(flat - n), kind="stable")[:max(0, target_n - n.sum())]:
             n[k] += 1
         ue = np.full((90, 2), -1000.0)
         offset = 0
@@ -66,13 +65,13 @@ class DelayedDynamicRole:
             r, c = divmod(k, 5)
             # Fixed uniform samples in each coarse 4x4 block; not actual UEs.
             for j in range(count):
-                ue[offset] = [4 * r + (j % 4), 4 * c + ((j // 4) % 4)]
+                ue[offset] = [4*r + (j % 4), 4*c + ((j//4) % 4)]
                 offset += 1
         fleet = shared[75:].reshape(5, 11)
-        valid = fleet[:, 10] > 0.5
+        valid = fleet[:, 10] > .5
         positions = np.clip(np.rint(fleet[:, :2] * 19), 0, 19).astype(int)
         status = np.where(valid, np.argmax(fleet[:, 4:7], axis=1), 3)
-        roles = (fleet[:, 2] > 0.75).astype(int)
+        roles = (fleet[:, 2] > .75).astype(int)
         view = copy(self.model)
         view.ue_positions = ue
         view.uav_positions = positions.copy()
@@ -93,26 +92,21 @@ class DelayedDynamicRole:
         ids = list(map(int, np.flatnonzero(view.status == 0)))
         if not ids or counts.sum() <= 0:
             return None
-        hotspot = np.asarray(np.unravel_index(np.argmax(counts), counts.shape)) * 4 + 1.5
-        gateways = view.surviving_bs_xy[:, ::-1] / view.cfg.cell_size_m - 0.5
-        gateway = gateways[np.argmin(np.linalg.norm(gateways - hotspot, axis=1))]
-        delta = hotspot - gateway
+        hotspot = np.asarray(np.unravel_index(np.argmax(counts), counts.shape))*4 + 1.5
+        gateways = view.surviving_bs_xy[:, ::-1] / view.cfg.cell_size_m - .5
+        gateway = gateways[np.argmin(np.linalg.norm(gateways-hotspot, axis=1))]
+        delta = hotspot-gateway
         distance = float(np.linalg.norm(delta))
         links = max(1, min(len(ids), int(np.ceil(distance / 5.4))))
-        end = gateway + delta * min(1.0, links * 5.4 / max(distance, 1e-9))
-        goals = [np.clip(gateway + (end - gateway) * (j + 1) / links, 0, 19) for j in range(links)]
+        end = gateway + delta * min(1.0, links*5.4/max(distance, 1e-9))
+        goals = [np.clip(gateway+(end-gateway)*(j+1)/links, 0, 19) for j in range(links)]
         # <=5 UAVs: deterministic minimum travel assignment to the chain.
-        assigned = min(
-            permutations(ids, links),
-            key=lambda q: (
-                sum(np.abs(view.uav_positions[a] - g).sum() for a, g in zip(q, goals)),
-                q,
-            ),
-        )
+        assigned = min(permutations(ids, links), key=lambda q: (
+            sum(np.abs(view.uav_positions[a]-g).sum() for a, g in zip(q, goals)), q))
         roles = np.zeros(5, dtype=int)
         targets = {}
         for j, (aid, goal) in enumerate(zip(assigned, goals)):
-            roles[aid] = int(j < links - 1)
+            roles[aid] = int(j < links-1)
             targets[aid] = goal
         return roles, targets
 
@@ -120,12 +114,8 @@ class DelayedDynamicRole:
         view, counts, known, ages = self.belief(shared)
         # Ages affect validity through the encoder; identical valid contents can
         # reuse a plan. Freshness expiry zeroes contents and changes this key.
-        key = hashlib.sha256(
-            b"".join(
-                x.tobytes()
-                for x in [view.ue_positions, view.uav_positions, view.status, view.roles]
-            )
-        ).hexdigest()
+        key = hashlib.sha256(b"".join(x.tobytes() for x in
+            [view.ue_positions, view.uav_positions, view.status, view.roles])).hexdigest()
         if key == self.cached_key:
             self.last_stats["role_cache_hit"] = 1
             return view, counts, known, ages
@@ -136,12 +126,8 @@ class DelayedDynamicRole:
             roles[ids] = bits
             score = self.estimate(view, roles)
             self.last_stats["roles_evaluated"] += 1
-            rank = (
-                score,
-                -int(np.sum(roles[ids] != view.roles[ids])),
-                -int(roles.sum()),
-                tuple(-int(x) for x in roles),
-            )
+            rank = (score, -int(np.sum(roles[ids] != view.roles[ids])),
+                    -int(roles.sum()), tuple(-int(x) for x in roles))
             if best is None or rank > best[0]:
                 best = rank, roles
         self.cached_roles = best[1]
@@ -155,31 +141,24 @@ class DelayedDynamicRole:
         return view, counts, known, ages
 
     def explore_target(self, uid, position, known, ages):
-        cell = tuple(np.clip(np.asarray(position) // 4, 0, 4).astype(int))
+        cell = tuple(np.clip(np.asarray(position)//4, 0, 4).astype(int))
         self.visits[(uid, *cell)] += 1
         # Agent-specific cyclic ownership spreads initial exploration. An
         # unobserved region is unknown, not declared to have no UEs.
         candidates = []
         for k in range(25):
             r, c = divmod(k, 5)
-            goal = np.asarray([4 * r + 1.5, 4 * c + 1.5])
-            rank = (
-                int(known[r, c]),
-                self.visits[uid, r, c],
-                int(k % 5 != uid),
-                -float(ages[r, c]),
-                float(np.abs(position - goal).sum()),
-                k,
-            )
+            goal = np.asarray([4*r+1.5, 4*c+1.5])
+            rank = (int(known[r, c]), self.visits[uid, r, c],
+                    int(k % 5 != uid), -float(ages[r, c]),
+                    float(np.abs(position-goal).sum()), k)
             candidates.append((rank, goal))
-        return min(candidates, key=lambda x: x[0])[1]
+        return min(candidates, key=lambda x:x[0])[1]
 
     def act(self, obs, mask):
         obs, mask = np.asarray(obs), np.asarray(mask)
         if obs.shape != (5, 148) or mask.shape != (5, 10):
-            raise ValueError(
-                "Dynamic A/R needs the same 148D actor input and 10-action mask as C-R"
-            )
+            raise ValueError("Dynamic A/R needs the same 148D actor input and 10-action mask as C-R")
         if not np.array_equal(obs[:, :130], np.repeat(obs[:1, :130], 5, axis=0)):
             raise ValueError("Expected a common delayed broadcast")
         started = time.perf_counter()
@@ -190,7 +169,7 @@ class DelayedDynamicRole:
         for uid in range(5):
             # DO NOT merge these five current own states into the common view.
             own = obs[uid, 130:137]
-            position = np.clip(np.rint(own[:2] * 19), 0, 19).astype(int)
+            position = np.clip(np.rint(own[:2]*19), 0, 19).astype(int)
             active = int(np.argmax(own[4:7])) == 0
             legal = list(map(int, np.flatnonzero(mask[uid])))
             if not active:
@@ -215,21 +194,18 @@ class DelayedDynamicRole:
                 local_roles = roles.copy()
                 local_roles[uid] = chosen_role
                 score = self.estimate(local, local_roles)
-                candidates.append(
-                    (score, -float(np.abs(nxt - target).sum()), int(move == 4), -action, action)
-                )
+                candidates.append((score, -float(np.abs(nxt-target).sum()),
+                                   int(move == 4), -action, action))
             # Connectivity recovery is a disclosed zero-score navigation rule;
             # it never queries the true current rate or a future env.step().
             if self.cached_targets is not None and uid in self.cached_targets:
-                chosen = max(candidates, key=lambda x: (x[1], x[0], x[2], x[3]))
+                chosen = max(candidates, key=lambda x:(x[1], x[0], x[2], x[3]))
             else:
                 chosen = max(candidates)
             actions.append(chosen[-1])
-        self.last_stats.update(
-            estimated_common_tcf=self.cached_score,
+        self.last_stats.update(estimated_common_tcf=self.cached_score,
             recovery_plan=int(self.cached_targets is not None),
             reported_ue_count=float(counts.sum()),
             observed_map_cells=int(known.sum()),
-            decision_ms=(time.perf_counter() - started) * 1000,
-        )
+            decision_ms=(time.perf_counter()-started)*1000)
         return actions

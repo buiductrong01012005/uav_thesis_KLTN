@@ -140,8 +140,6 @@ runpy.run_path(sys.argv[0],run_name='__main__')
 
 
 def test_fresh_notebook_source_only_and_resume_without_parent(tmp_path, monkeypatch):
-    if not (ROOT / 'scripts/notebooks/bs5_curriculum_fresh_60k_kaggle.ipynb').is_file():
-        pytest.skip("Notebook fixtures are local and are not distributed with source.")
     nb = read_json(ROOT / "scripts/notebooks/bs5_curriculum_fresh_60k_kaggle.ipynb")
     cells = ["".join(c["source"]) for c in nb["cells"] if c["cell_type"] == "code"]
     assert len(cells) == 4 and not any("parents =" in c for c in cells)

@@ -145,7 +145,7 @@ def save_state(run, learner, replay, exploration, progress, p):
     snapshot = run / progress["resume_file"]
     assert not snapshot.exists(), "Never overwrite a committed resume generation."
     atomic_torch(snapshot, data)
-    with snapshot.open("r+b") as stream:
+    with snapshot.open("rb") as stream:
         import os
         os.fsync(stream.fileno())
     progress["last_checkpoint_s"] = time.monotonic() - started

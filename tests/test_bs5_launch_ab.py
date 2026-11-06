@@ -52,7 +52,7 @@ def test_source_inventory_works_without_windows_junction_api(monkeypatch):
 
     monkeypatch.delattr(os.path, "isjunction", raising=False)
     files = source_files()
-    assert ((ROOT / "AGENTS.md") in files) == (ROOT / "AGENTS.md").is_file()
+    assert ROOT / "AGENTS.md" in files
     assert ROOT / "src/envs/bs5_launch_ab_env.py" in files
     assert not any(p.suffix in {".pyc", ".pyo"} for p in files)
 

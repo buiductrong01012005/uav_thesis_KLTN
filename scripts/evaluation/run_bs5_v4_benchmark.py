@@ -33,28 +33,6 @@ def save_commit(root, commit):
     atomic_json(root / "commit.json", commit)
 
 
-def benchmark_source(training_protocol):
-    """Keep training provenance while validating a reorganized repository."""
-    current = source_identity()["sha256"]
-    original = training_protocol["source_sha256"]
-    if current == original:
-        return dict(source_sha256=current, training_source_sha256=original)
-    receipt_path = ROOT / "configs/bs5_return_v4_cpu_import.json"
-    assert receipt_path.is_file(), "Training source differs; no verified import receipt."
-    receipt = read_json(receipt_path)
-    assert receipt["original_source_sha256"] == original, "Different training source."
-    assert receipt["science_files"], "Empty scientific source lock."
-    for rel, digest in receipt["science_files"].items():
-        adaptation = receipt.get("integration_files", {}).get(rel)
-        if adaptation is not None:
-            assert adaptation["original_sha256"] == digest, f"Invalid import adaptation: {rel}"
-            digest = adaptation["integrated_sha256"]
-        path = (ROOT / rel).resolve()
-        assert path.is_relative_to(ROOT) and file_hash(path) == digest, f"Scientific source changed: {rel}"
-    return dict(source_sha256=current, training_source_sha256=original,
-                source_import_receipt_sha256=file_hash(receipt_path))
-
-
 def prepare(root, training, device="cpu", scenarios=10, timing_profile=None):
     root, training = Path(root).resolve(), Path(training).resolve()
     assert not root.exists(), "Existing benchmark output; resume it rather than prepare again."
@@ -66,7 +44,7 @@ def prepare(root, training, device="cpu", scenarios=10, timing_profile=None):
     assert set(p["arms"]) == {"C-R", "C-N"} and set(p["training_seeds"]) == expected_seeds, "Merge all four completed arm/seed jobs before benchmark."
     plan = read_json(training / "benchmark_plan.json")
     assert canonical_hash(plan) == p["benchmark_plan_sha256"]
-    provenance = benchmark_source(p)
+    assert p["source_sha256"] == source_identity()["sha256"]
     assert all_complete(training, p), "Finish all four training runs and validation before the final benchmark."
     assert scenarios in [10, 20]
     seeds = plan["test_scenarios"] + (plan["reserved_scenarios"] if scenarios == 20 else [])
@@ -93,11 +71,11 @@ def prepare(root, training, device="cpu", scenarios=10, timing_profile=None):
     timings = {}
     if timing_profile is not None:
         receipt = read_json(timing_profile)
-        assert receipt["status"] == "passed" and receipt["identity"]["source_sha256"] == provenance["source_sha256"]
+        assert receipt["status"] == "passed" and receipt["identity"]["source_sha256"] == p["source_sha256"]
         assert receipt["identity"]["runtime"] == setup("cpu")
         timings = receipt["benchmark_startup_timing"]
     protocol = dict(version=plan["version"], diagnostic=p["diagnostic"], training_protocol=p,
-                    training_protocol_sha256=canonical_hash(p), **provenance,
+                    training_protocol_sha256=canonical_hash(p), source_sha256=p["source_sha256"],
                     plan=plan, scenarios=seeds, horizon=h, policies=policies, jobs=jobs,
                     runtime=setup(device), planned_steps=len(jobs) * h, diagnostic_startup_timing=timings,
                     previews="isolated one-slot simulator calls; accounted separately; no modification of executed env")
