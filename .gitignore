@@ -16,6 +16,7 @@ reports
 AGENTS.md
 archive/
 /assets/
+/benchmark_assets/
 
 # Documentation, reports and notebook workflows stay local.
 *.[mM][dD]
