@@ -93,3 +93,43 @@ src/rl/spatial_scout_qmix.py -text
 src/rl/v4_hardradius_spatial_qmix.py -text
 src/rl/v4_spatial_qmix.py -text
 src/rl/v5_relay_request_spatial_qmix.py -text
+
+# Four-arm 399600-step training source receipts.
+configs/bs5_fourarm400k.json -text
+scripts/analysis/plot_bs5_fourarm400k.py -text
+scripts/training/run_bs5_fourarm400k.py -text
+scripts/verification/export_bs5_fourarm400k.py -text
+src/diagnostics/bs5_fourarm400k_metrics.py -text
+src/envs/bs5_fourarm400k.py -text
+src/rl/bs5_fourarm400k_qmix.py -text
+
+# RETURNFIX reference source: preserve protocol checksums.
+configs/bs5_fourarm400k_heuristic_benchmark.json -text
+configs/bs5_lp_roundoff_compat.json -text
+configs/bs5_multiseed400k_plan.json -text
+configs/README_HEUR400K_BENCHMARK.md -text
+tests/test_bs5_lpfix_io.py -text
+tests/test_bs5_lp_roundoff.py -text
+tests/test_fourarm400k_heuristics.py -text
+tests/test_fourarm400k_heuristic_io.py -text
+tests/test_fourarm400k_multiseed.py -text
+tests/test_fourarm400k_multiseed_raw.py -text
+tests/test_fourarm400k_return_summary.py -text
+tests/fixtures/lp_allocator_legacy_reference.py -text
+tests/fixtures/lp_roundoff_negative_rate.json -text
+tests/fixtures/lp_roundoff_solver_output.json -text
+scripts/analysis/compare_fourarm400k_multiseed.py -text
+scripts/analysis/fourarm400k_lp_compat.py -text
+scripts/analysis/fourarm400k_multiseed.py -text
+scripts/analysis/report_fourarm400k_heuristics.py -text
+scripts/analysis/report_fourarm400k_multiseed.py -text
+scripts/evaluation/fourarm400k_return_summary.py -text
+scripts/evaluation/run_fourarm400k_drl_benchmark.py -text
+scripts/evaluation/run_fourarm400k_heuristics.py -text
+scripts/evaluation/run_fourarm400k_returnfix.py -text
+scripts/notebooks/build_fourarm400k_heuristics.py -text
+scripts/notebooks/build_fourarm400k_lpfix.py -text
+scripts/notebooks/build_fourarm400k_multiseed.py -text
+scripts/verification/verify_fourarm400k_drl_benchmark.py -text
+scripts/verification/verify_fourarm400k_heuristics.py -text
+scripts/verification/verify_fourarm400k_multiseed.py -text
