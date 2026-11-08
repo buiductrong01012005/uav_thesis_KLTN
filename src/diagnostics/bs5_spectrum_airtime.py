@@ -224,6 +224,93 @@ def schedule_matrix(env, edges: list[Edge], bandwidth_mhz: float, efficiency: fl
     return matrix, states
 
 
+# HiGHS accepts absolute feasibility residuals at 1e-8. The UE metric
+# validator intentionally stays stricter; sanitize only bounded solver roundoff
+# at its source, rather than weakening rate_metrics or replacing NaN values.
+LP_NUMERICAL_GUARD_VERSION = "lp_bound_roundoff_v1"
+LP_SOLVER_TOL = 1e-8
+LP_MAX_REPAIR_MBPS = 1e-6
+_LP_EVENT_COUNT = 0
+
+
+def _lp_diagnostic(stage, ids, offers, paths, capacities, raw, clean, reason):
+    import json, os
+    from pathlib import Path
+    global _LP_EVENT_COUNT
+    _LP_EVENT_COUNT += 1
+    record = dict(version=LP_NUMERICAL_GUARD_VERSION, stage=stage, reason=reason,
+        ids=[int(a) for a in ids], offers=[float(offers[a]) for a in ids],
+        paths=[[int(edge) for edge in paths[a]] for a in ids],
+        capacities=np.asarray(capacities).tolist(), raw=np.asarray(raw).tolist(),
+        cleaned=None if clean is None else np.asarray(clean).tolist())
+    # Nonfinite values stay explicit in rejected diagnostics; they are never
+    # turned into a zero rate or a valid training sample.
+    def finite_json(value):
+        if isinstance(value, float) and not np.isfinite(value):return repr(value)
+        if isinstance(value, list):return [finite_json(v) for v in value]
+        if isinstance(value, dict):return {k:finite_json(v) for k,v in value.items()}
+        return value
+    folder = os.environ.get("UAV_LP_DIAGNOSTIC_DIR")
+    if folder:
+        try:
+            destination=Path(folder);destination.mkdir(parents=True,exist_ok=True)
+            # One process writes one output directory; append preserves earlier
+            # diagnostics when a fresh Kaggle session resumes the same run.
+            with (destination/"lp_numerics.jsonl").open("a") as stream:
+                stream.write(json.dumps(finite_json(record),allow_nan=False)+"\n")
+        except OSError as exc:
+            print("LP diagnostic write failed:",exc,flush=True)
+    if clean is None or _LP_EVENT_COUNT<=8 or _LP_EVENT_COUNT & (_LP_EVENT_COUNT-1)==0:
+        print(f"LP numerical guard {stage}: {reason}",flush=True)
+
+
+def _clean_lp_solution(solution, ids, offers, paths, capacities, demand,
+                       a_ub, b_ub, bounds, stage):
+    n=len(ids);states=capacities.shape[1]
+    raw=np.asarray(solution,dtype=float)
+    def reject(message):
+        _lp_diagnostic(stage,ids,offers,paths,capacities,raw,None,message)
+        raise FloatingPointError("Invalid LP output: "+message)
+    if raw.shape!=(len(bounds),) or not np.isfinite(raw).all():
+        reject("nonfinite or wrong-sized solution")
+    lower=np.asarray([b[0] for b in bounds],dtype=float)
+    upper=np.asarray([b[1] for b in bounds],dtype=float)
+    margin=64*np.finfo(float).eps*max(1.,float(np.abs(raw).max(initial=0)),float(upper.max(initial=0)))
+    tol=LP_SOLVER_TOL+margin
+    bound_error=max(float((lower-raw).max(initial=0)),float((raw-upper).max(initial=0)))
+    residual=float((a_ub@raw-b_ub).max(initial=0))
+    if bound_error>tol or residual>1e-6:
+        reject(f"bounds={bound_error:.9g}, constraints={residual:.9g}")
+    cleaned=np.clip(raw,lower,upper)
+    if np.array_equal(cleaned,raw):
+        # Preserve every already bounded solution bit-for-bit. In particular,
+        # do not perturb ordinary positive optima or retune the LP objective.
+        return raw, residual
+    duration=cleaned[n:n+states]
+    if duration.sum()>1:
+        if duration.sum()-1>tol:reject("schedule time exceeds the solver tolerance")
+        duration/=duration.sum()
+    q=cleaned[:n]
+    capacity=capacities@duration
+    # Removing a tiny negative flow can expose a tiny shared-edge overload.
+    # Reduce only flows crossing that edge; a zero-capacity leaf must not zero
+    # unrelated, large flows elsewhere in the forest. No rate is increased.
+    for edge in range(len(capacity)):
+        users=np.flatnonzero(demand[edge]>0)
+        load=float(q[users].sum())
+        if load>capacity[edge] and load>0:
+            q[users]*=max(0.,float(capacity[edge]))/load
+    eligible=[j for j,a in enumerate(ids) if paths[a] and offers[a]>1e-12]
+    cleaned[-1]=min(float(cleaned[-1]),min((q[j]/offers[ids[j]] for j in eligible),default=0.))
+    max_change=float(np.abs(cleaned[:n]-raw[:n]).sum())
+    after=float((a_ub@cleaned-b_ub).max(initial=0))
+    if max_change>LP_MAX_REPAIR_MBPS or after>1e-6:
+        reject(f"repair too large: {max_change:.9g} Mbps, residual={after:.9g}")
+    _lp_diagnostic(stage,ids,offers,paths,capacities,raw,cleaned,
+        f"bounded roundoff; max_bound_error={bound_error:.9g}, total_flow_change={max_change:.9g} Mbps")
+    return cleaned, max(0.,after)
+
+
 def allocate_flows(offers: dict[int, float], paths: dict[int, list[int]], capacities: np.ndarray):
     """Lexicographic LP: maximum Mbps, then max-min offer fulfillment.
 
@@ -232,6 +319,9 @@ def allocate_flows(offers: dict[int, float], paths: dict[int, list[int]], capaci
     steady-state fluid capacity only, not packet delay or empty-buffer startup.
     """
     ids = sorted(offers)
+    capacities = np.asarray(capacities, dtype=float)
+    if capacities.ndim != 2 or any(not np.isfinite(offers[a]) or offers[a] < 0 for a in ids):
+        raise ValueError("Invalid offers or capacity shape")
     n, edges, states = len(ids), *capacities.shape
     if np.any(~np.isfinite(capacities)) or np.any(capacities < 0):
         raise ValueError("Invalid link capacities")
@@ -263,13 +353,15 @@ def allocate_flows(offers: dict[int, float], paths: dict[int, list[int]], capaci
         rhs.append(0.0)
     bounds = [(0, offers[a] if paths[a] else 0) for a in ids] + [(0, 1)] * states + [(0, 1)]
     a_ub, b_ub = np.asarray(constraints), np.asarray(rhs)
-    options = {"dual_feasibility_tolerance": 1e-8, "primal_feasibility_tolerance": 1e-8}
+    options = {"dual_feasibility_tolerance": LP_SOLVER_TOL, "primal_feasibility_tolerance": LP_SOLVER_TOL}
     objective = np.zeros(size)
     objective[:n] = -1
     first = linprog(objective, A_ub=a_ub, b_ub=b_ub, bounds=bounds, method="highs", options=options)
     if not first.success:
         raise RuntimeError(first.message)
-    maximum_total = float(first.x[:n].sum())
+    first_x, _ = _clean_lp_solution(first.x, ids, offers, paths, capacities, demand,
+        a_ub, b_ub, bounds, "max-throughput")
+    maximum_total = float(first_x[:n].sum())
     total_constraint = np.zeros(size)
     total_constraint[:n] = -1
     a_ub = np.vstack([a_ub, total_constraint])
@@ -279,11 +371,10 @@ def allocate_flows(offers: dict[int, float], paths: dict[int, list[int]], capaci
     second = linprog(objective, A_ub=a_ub, b_ub=b_ub, bounds=bounds, method="highs", options=options)
     if not second.success:
         raise RuntimeError(second.message)
-    violation = max(0.0, float(np.max(a_ub @ second.x - b_ub)))
-    if violation > 1e-6:
-        raise AssertionError(f"Infeasible LP result: {violation}")
-    minimum = float(second.x[-1])
-    return dict(zip(ids, second.x[:n])), second.x[n:n + states], minimum, violation
+    result, violation = _clean_lp_solution(second.x, ids, offers, paths, capacities,
+        demand, a_ub, b_ub, bounds, "max-min")
+    minimum = float(result[-1])
+    return dict(zip(ids, result[:n])), result[n:n + states], minimum, violation
 
 
 def audit_case(env, *, access_bw: float, backhaul_bw: float, spectrum_mode: str,

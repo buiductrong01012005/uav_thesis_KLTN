@@ -1,0 +1,15 @@
+{
+  "version": "fourarm400k_multiseed_plan_v1",
+  "training_seeds": [551, 552, 553],
+  "additional_training_seeds": [552, 553],
+  "arms": ["C-N", "C-R", "C-H", "H-only"],
+  "heuristics": ["DYNAMIC_AR", "HEURISTIC_HO"],
+  "total_training_steps": 399600,
+  "validation_seeds": [720001, 720002],
+  "test_seeds": [930201, 930202, 930203, 930204, 930205, 930206, 930207, 930208, 930209, 930210],
+  "test_horizon": 10000,
+  "selection": "Per training seed: best.pt by mean total reward on the fixed validation seeds. No selection by test or by best training seed.",
+  "replication_scope": "Three optimizer/network/exploration/replay seeds on the same declared training scenario schedule. This does not establish robustness to other maps, hardware or hyperparameters.",
+  "presentation": "Four DRL configurations plus two heuristic labels. Retain individual trained models as replicates, not separate algorithms.",
+  "statistics": "Equal weighting of training seeds and scenario seeds. Crossed bootstrap resamples paired training-seed indices and paired scenario indices separately. Three training seeds yield exploratory uncertainty estimates. Never count heuristic copies as independent observations."
+}
