@@ -3,11 +3,16 @@ import argparse
 import hashlib
 import json
 from pathlib import Path
+import sys
 
 import numpy as np
 import pandas as pd
 
 ROOT = Path(__file__).resolve().parents[2]
+# The frozen benchmark imports Unix fcntl. Use the existing real Windows lock
+# adapter for this convenience checker without changing any locked runner.
+if sys.platform == "win32":
+    sys.path.insert(0, str(ROOT / "scripts/compat/windows"))
 ARMS = ["C-N", "C-R", "C-H", "H-only"]
 LABELS = ARMS + ["DYNAMIC_AR", "HEURISTIC_HO", "RANDOM"]
 SCENARIOS = set(range(930201, 930211))
