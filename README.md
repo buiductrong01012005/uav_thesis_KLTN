@@ -1,5 +1,108 @@
 # UAV Thesis — Four-arm 400K
 
+## W00 đang dùng trên Windows — tích hợp 09/11/2026
+
+Đường chạy mặc định: `python -m scripts.w00`. Mã khoa học đang chạy trong `src/` trùng byte với phần tương ứng của snapshot W00 chính `archive/frozen_sources/w00_main_returnfix/uav_thesis_source_2026-11-07_2.zip`. Giữ bản vá đường dẫn Windows và receipt đã có trong repo; entrypoint native có mã `w00_native_windows_v1`. Bản ablation có cây nguồn riêng, không nhập mô hình MLP vào `src/` của W00 chính. Các mục 400K phía dưới được giữ nguyên làm tài liệu lịch sử, bao gồm nội dung người dùng đã sửa trước phiên này.
+
+| Đường dẫn | Vai trò |
+| --- | --- |
+| `checkpoints/w00_main/FOURARM400K_FROZEN_MODELS.zip` | 12 checkpoint chính, manifest và protocol nguyên bản |
+| `checkpoints/w00_ablation/W00_CR_{variant}_S{551,552,553}/` | Sáu bộ `best.pt`, protocol/status và log train đã khớp EVAL |
+| `results/w00_main/{benchmark,training}/` | 150 lượt đã công bố, bảng tổng hợp và learning |
+| `results/w00_ablation/` | 60 lượt ablation, 30 lượt C-R tham chiếu, bảng ghép cặp và chứng cứ |
+| `results/w00_ablation/checkpoint_verification.json` | SHA-256 đầy đủ của sáu checkpoint, protocol và ZIP FINAL/EVAL; **6/6 khớp, không thiếu checkpoint** |
+| `archive/frozen_sources/{w00_main_returnfix,w00_main_training,w00_ablation,appendix_w05}/` | Snapshot/Dataset nguyên byte, tách lịch sử train, benchmark, ablation và phụ lục |
+| `results/{appendix_w05,appendix_reward_sweep}/`, `checkpoints/{appendix_w05,appendix_reward_sweep}/` | W05 và khảo sát trọng số, giữ riêng với W00 chính |
+| `notebooks/kaggle/{w00_main,w00_ablation,appendix_w05}/` | Notebook gốc và hướng dẫn |
+| `figures/w00_main/thesis_v12/` | Hình/script v12 bàn giao; script chạy từ repo tại `scripts/plotting/plot_w00_7cfg.py` |
+| `archive/historical_artifacts/w00_legacy_plot_bundle_2026-11-09/` | Tám tệp hình/script cũ đã chuyển, kiểm tra hash trước/sau |
+| `archive/packages/incoming/w00_windows_2026-11-09/` | ZIP chính và 12 ZIP FINAL/EVAL đầu vào nguyên bản |
+| `runs/local/<run_id>/` | Mọi lượt chạy mới, tách số liệu đã công bố |
+| `configs/w00_assets.json` | Danh mục nguồn, hash snapshot và cách tổng hợp hình |
+| `archive/imports/w00_windows_2026-11-09/` | So sánh trước nhập, backup README, manifest chuyển tệp và log kiểm thử thực tế |
+
+Các bản `results/final400k/`, `results/benchmark_assets/`, `results/drl400k_training/` và gói nhập trước vẫn được cấu hình, test, notebook hoặc tài liệu tham chiếu nên giữ nguyên. Cả 98 đường dẫn trong source lock được giữ, kể cả mô-đun mang tên phiên bản cũ. Xem `retained_source_references.json` trong audit. Sáu EVAL nhận riêng đã được so hash và gộp với đúng bản chứng cứ cùng byte. Không xóa dữ liệu hoặc bản chưa rõ vai trò.
+
+### Môi trường thực tế
+
+Chạy PowerShell tại repo root. Phiên này đã tạo `.venv` từ Conda `uav_sim_py311` bằng `--system-site-packages`, dùng thư viện đã cài để kiểm thử offline. Venv này phụ thuộc môi trường Conda gốc; máy mới cần cài theo `requirements.txt` và chọn runtime lịch sử khi tái hiện số liệu đã công bố.
+
+```powershell
+$Py = Join-Path $PWD '.venv\Scripts\python.exe'
+$env:PYTHONDONTWRITEBYTECODE = '1'
+$env:PYTHONUTF8 = '1'
+$env:MPLBACKEND = 'Agg'
+$env:PYTHONPATH = "$PWD/scripts/compat/windows;$PWD"
+& $Py -m pip check
+$Run = 'runs/local/' + (Get-Date -Format 'yyyyMMdd_HHmmss')
+```
+
+Đã dùng Windows, Python **3.11.15**, PyTorch **2.13.0+cpu**, NumPy **2.4.6**, SciPy **1.17.1**, pandas **3.0.5**, Matplotlib **3.11.1**, filelock **3.29.7**. Đây là runtime kiểm tra tương thích; protocol lịch sử ghi runtime khác và không được sửa. Chưa kiểm thử WSL2 trong phiên này. Snapshot Linux/Kaggle nguyên bản vẫn nằm trong ZIP, hash trong `configs/w00_assets.json`; phải giải nén vào cây riêng và dùng runtime gốc cho tái lập lịch sử. Không dùng adapter native để resume lượt lịch sử khác fingerprint.
+
+### Train từ đầu N bước và resume
+
+Cấu hình chính: `configs/bs5_fourarm400k.json`; `--arm` chọn C-N/C-R/C-H/H-only, `--preset service_fair`, CPU. N phải ≥24.000 và `(N - 12000) % 1200 == 0`; runner từ chối N sai, không làm tròn. Mốc công bố là 399.600. Model mới của budget khác không thuộc manifest benchmark 400K.
+
+```powershell
+$N = 24000
+& $Py -m scripts.w00 train --variant main --arm C-R --training-seed 551 --total-steps $N --output "$Run/train"
+# Với C-R, có thể chọn --variant mlp hoặc --variant no_curriculum.
+# Hai biến thể dùng snapshot ablation riêng; protocol native ghi hash adapter.
+
+# Smoke riêng 96 bước; dừng đúng biên episode 48 rồi tiếp tục cùng thư mục:
+& $Py -m scripts.w00 train --arm C-R --training-seed 551 --diagnostic --pause-at-step 48 --output "$Run/train_smoke"
+& $Py -m scripts.w00 train --arm C-R --training-seed 551 --diagnostic --resume --output "$Run/train_smoke"
+```
+
+### Benchmark N slot trên mỗi seed
+
+`--slots` tạo horizon tùy biến hoàn chỉnh, ghi horizon, run ID, hash adapter và fingerprint vào protocol; vẫn xác minh checkpoint qua manifest. Số slot không đổi bước train checkpoint. `--stop-after-slots` chỉ tạm dừng rồi resume bằng cùng lệnh bỏ cờ dừng. Phải giữ `--run-id`, horizon, seed, model, nguồn và runtime khi resume. Dùng cùng run ID cho một nhóm cấu hình muốn so sánh; dùng output riêng từng cấu hình/seed train/part. Hash UE chỉ so giữa các lượt cùng seed và cùng horizon; không so trace 40 slot với hash lịch sử 10.000 slot. Metric cửa sổ dài giữ định nghĩa gốc, có thể null nếu dữ liệu ngắn.
+
+```powershell
+$N = 100
+& $Py -m scripts.w00 benchmark drl --arm C-R --training-seed 551 --part 1 --seeds 930201 --slots $N --run-id local_custom --output "$Run/benchmark"
+& $Py -m scripts.w00 benchmark baseline --label RANDOM --part 1 --seeds 930201 --slots $N --run-id local_custom --output "$Run/random"
+# Bỏ --slots để giữ horizon chuẩn 10.000; part 1/2 là hai nhóm 5 seed.
+# Chẩn đoán ngắn đã chạy: --diagnostic --seeds 940201 --slots 40.
+```
+
+Đường runner gốc vẫn giữ: `python -m scripts.evaluation.run_fourarm400k_returnfix drl` hoặc `baseline`, với `--models checkpoints/w00_main/FOURARM400K_FROZEN_MODELS.zip` cho DRL. Runner gốc giữ giao thức 10.000 slot và chẩn đoán 96 slot; không nhận `--slots`. Phiên này không chạy lại 150 lượt benchmark hoặc train đủ 399.600 bước.
+
+### Hình và metric từ CSV
+
+```powershell
+New-Item -ItemType Directory -Force -Path "$Run/figures_v12" | Out-Null
+& $Py scripts/plotting/plot_w00_7cfg.py results/w00_main/benchmark "$Run/figures_v12"
+& $Py -m scripts.plotting.plot_final400k --input results/w00_main/benchmark --training results/w00_main/training --output "$Run/figures_legacy"
+& $Py -m scripts.plotting.plot_w00_metric --input results/w00_main/benchmark/per_run.csv --metric joules_per_mbit --unit J/Mbit --by seed --output "$Run/metric_seed"
+& $Py -m scripts.plotting.plot_w00_metric --input results/w00_main/benchmark/temporal_1000slot.csv --metric throughput_mbps --unit Mbps --by time --x block --output "$Run/metric_time"
+# Theo lượt: dùng per_run.csv với --by run. Script yêu cầu cột tương ứng.
+```
+
+V12 giữ trung bình số đo J/Mbit theo lượt (gộp các seed train trong mỗi seed test); hình lịch sử giữ tỷ số gộp và các hình learning/waterfall. Hai cách tổng hợp không thay thế nhau. Script metric ghi `plotted_values.csv` và `method.json`, không suy ngược dữ liệu theo slot từ bảng đã tổng hợp.
+
+### Kiểm thử và bằng chứng thực tế
+
+Chạy lại toàn bộ pipeline ngắn bằng một lệnh dưới đây. Script chạy train 96 bước, so sánh resume từ bước 48, benchmark 40 slot với dừng/resume và chạy lặp, kiểm tra trace/metric rồi vẽ hình. `--with-ablation` cần snapshot ablation đã khôi phục; `--with-tests` chạy thêm các test hồi quy hiện có. Dùng output mới; lệnh ghi từng argument, mã thoát và log vào `smoke_report.json` cùng thư mục `logs/`.
+
+```powershell
+& $Py -m scripts.verification.smoke_w00_pipeline --output "$Run/pipeline_smoke" --with-ablation --with-tests
+```
+
+Đã chạy lại trên Windows ngày **10/11/2026** tại `runs/local/w00_pipeline_20261110/`: train chính, MLP và no-curriculum hoàn tất 96 bước; resume train từ bước 48 khớp bitwise; benchmark dừng 17 rồi hoàn tất 40 slot, chạy lặp khớp dữ liệu khoa học/trace và baseline khớp hash UE cùng horizon; vẽ hình thành công; **43 test hồi quy đạt**. Chi tiết từng lệnh và mã thoát nằm trong `smoke_report.json`. Benchmark ngắn vẫn dùng checkpoint đóng băng trong manifest; đây là kiểm tra pipeline, không thay kết quả đã công bố.
+
+```powershell
+& $Py -m scripts.verification.verify_w00_import --output "$Run/import_verified.json"
+& $Py -m scripts.verification.verify_bs5_fourarm400k --arm C-R --output "$Run/train_verify"
+& $Py -m scripts.verification.verify_fourarm400k_drl_benchmark --arm C-R --training-seed 551 --models checkpoints/w00_main/FOURARM400K_FROZEN_MODELS.zip --output "$Run/drl_verify"
+& $Py -m pytest -q -p no:cacheprovider tests/test_bs5_lp_roundoff.py tests/test_bs5_lpfix_io.py tests/test_fourarm400k_return_summary.py tests/test_final400k_delivery.py tests/test_fourarm400k_multiseed.py tests/test_fourarm400k_heuristic_io.py tests/test_bs5_fourarm400k_io.py
+```
+
+Lệnh, mã thoát và log thực tế nằm trong `validation_commands.json` và `validation_train_commands.json` của audit. Lỗi đầu tiên do ACL `tempfile` trong sandbox (`WinError 5`), đã chạy lại ngoài sandbox với thư mục tạm riêng. Xem báo cáo bàn giao `provenance/W00_WINDOWS_HANDOFF.md` để biết kết quả cuối, các kiểm tra số liệu và gói mã nguồn. Không có checkpoint ablation còn thiếu; raw REVIEW train/resume lịch sử đầy đủ vẫn là hiện vật riêng, không suy ra từ FINAL.
+
+---
+
+
 Repo tập trung vào bốn cấu hình **C-N, C-R, C-H và H-only**, mỗi cấu hình có ba seed huấn luyện **551/552/553**. Mốc 400K của protocol là **399.600 bước môi trường**. Đánh giá cuối giữ cả ba baseline RANDOM, DYNAMIC_AR và HEURISTIC_HO để so sánh khoa học: **150 lượt, bảy cấu hình, 10 seed kịch bản 930201–930210**.
 
 | Đường dẫn | Vai trò hiện tại |
@@ -30,6 +133,39 @@ python -m pip install -r requirements.txt
 Trên Linux/Kaggle, kích hoạt môi trường bằng `source .venv/bin/activate`. Với Kaggle offline, dùng các thư viện đã cài sẵn của Dataset/notebook thí nghiệm. `requirements.txt` là danh sách phụ thuộc chung; các bộ phiên bản lịch sử được ghi chú trong file này. Tái hiện kết quả phải dùng đúng runtime trong protocol đã lưu.
 
 Các file requirements riêng của gói bàn giao được lưu cục bộ trong `archive/dependencies/fair300k_2026-11-06/`. ZIP nhận ban đầu nằm trong `archive/packages/incoming/`.
+
+### Conda trên Windows và chạy ngắn
+
+Với môi trường đã có `uav_sim_py311`, kích hoạt từ PowerShell tại gốc repo:
+
+```powershell
+conda activate uav_sim_py311
+$env:PYTHONDONTWRITEBYTECODE = "1"
+$env:PYTHONUTF8 = "1"
+$env:PYTHONPATH = "$PWD/scripts/compat/windows;$PWD"
+python -m pip install -r requirements.txt
+python -m pip check
+```
+
+Chỉ cần cài requirements khi thiếu phụ thuộc hoặc tạo môi trường mới. Tạo môi trường mới bằng `conda create -n uav_sim_py311 python=3.11 pip` nếu tên này chưa tồn tại. Các thư viện chạy chính là NumPy, SciPy, PyTorch, pandas, matplotlib và filelock; pytest/Ruff phục vụ kiểm tra. Môi trường Conda không thay thế cơ chế tương thích hệ điều hành: `fcntl` là module Unix, không cài bằng pip trên Windows. Dòng `PYTHONPATH` bật adapter `scripts/compat/windows/fcntl.py` cho các runner đóng băng. Riêng `check_final400k.py` tự bật adapter trên Windows, kể cả khi chưa đặt `PYTHONPATH`.
+
+Đã chạy thực tế trên Conda `uav_sim_py311` (Python 3.11.15): `pip check` đạt, nạp đủ 12 model khi không đặt `PYTHONPATH`, train diagnostic hoàn tất 96 bước/13 update, benchmark DRL dừng và lưu đúng 100 slot, sáu test CSV đạt. Log tại `archive/imports/conda_short_2026-11-08/`. Đây là kiểm tra tương thích local; tái hiện kết quả lịch sử vẫn dùng runtime ghi trong protocol.
+
+Runner train giữ giao thức curriculum và yêu cầu ngân sách mới ít nhất 24.000 bước, sau 12.000 phải gồm trọn các episode 1.200 bước. Do đó `--total-steps 10000` bị từ chối; `--diagnostic` là bài kiểm tra 96 bước, không phải 10.000 bước. Để chạy khoảng 10.000 bước của lịch gốc rồi lưu đầy đủ optimizer/replay/RNG:
+
+```powershell
+python -m scripts.training.run_bs5_fourarm400k --arm C-H --training-seed 552 --pause-at-step 10000 --output results/train_short/CH552_prefix10k
+```
+
+Lệnh này dừng ở **10.050 bước**, tại biên episode đầu tiên đạt mốc 10.000, với trạng thái `paused_at_episode_boundary`; tổng mục tiêu trong protocol vẫn 399.600. Đây mới là phần đầu curriculum, chưa phải huấn luyện xong full task. Lịch validation gốc mới chạy mốc 0 trước 12.000 bước, vì vậy `best.pt` lúc này vẫn là checkpoint được chọn ở bước 0; trọng số hiện tại, optimizer và replay được lưu trong `resume.pt`. Muốn tiếp tục, dùng cùng output và `--resume`, bỏ `--pause-at-step`.
+
+Benchmark đúng 100 slot của một seed, dùng checkpoint 400K đã chốt:
+
+```powershell
+python -m scripts.evaluation.run_fourarm400k_returnfix drl --arm C-H --training-seed 552 --models results/benchmark_assets/fourarm400k --part 1 --seeds 930201 --stop-after-slots 100 --output results/benchmark_short/CH552_100slots
+```
+
+Kết quả ghi `slots=100`, `target_slots=10000`, `complete=false`; đây là snapshot benchmark chạy dở, không phải kết quả hoàn tất 100 slot hay bộ 150 lượt cuối. Chạy lại cùng lệnh và bỏ `--stop-after-slots` để tiếp tục đến 10.000 slot; resume yêu cầu cùng nguồn/runtime/model và Windows có hạn chế thay thế ZIP đã ghi trong phần kiểm tra local. Runner frozen chỉ nhận model train đủ 399.600 bước trong catalog, không nhận model train ngắn mới. Để kiểm tra thật ngắn bằng seed diagnostic riêng, dùng `--diagnostic` với output mới: giao thức này hoàn tất **96 slot**. Train/benchmark chính xác ngân sách 10.000/100 với trạng thái hoàn tất cần một giao thức thí nghiệm ngắn riêng; không sửa cấu hình hoặc hash của bộ 400K đã chốt.
 
 ## Four-arm 400k: mã nguồn và kết quả theo seed
 

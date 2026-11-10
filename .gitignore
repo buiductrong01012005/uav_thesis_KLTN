@@ -38,3 +38,9 @@ archive/
 *.bak
 *.orig
 *.tmp
+
+# W00 local artifacts and new runs; scientific sources remain tracked.
+/runs/
+/figures/
+/notebooks/
+/provenance/
