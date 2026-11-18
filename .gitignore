@@ -26,6 +26,8 @@ archive/
 *.docx
 *.pptx
 *.ipynb
+.vscode
+
 /scripts/notebooks/*
 # Final pipeline tests import these generators; generated notebooks stay local.
 !/scripts/notebooks/build_fourarm400k*.py
