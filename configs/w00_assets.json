@@ -1,12 +1,12 @@
 {
   "version": "w00_native_windows_v1",
   "main_entrypoint": "python -m scripts.w00",
-  "main_snapshot": "archive/frozen_sources/w00_main_returnfix/uav_thesis_source_2026-11-07_2.zip",
-  "ablation_snapshot": "archive/frozen_sources/w00_ablation/uav_thesis_source_2026-11-09.zip",
+  "main_snapshot": "../uav_thesis_storage_2026-11-18/preserved/archive/frozen_sources/w00_main_returnfix/uav_thesis_source_2026-11-07_2.zip",
+  "ablation_snapshot": "../uav_thesis_storage_2026-11-18/preserved/archive/frozen_sources/w00_ablation/uav_thesis_source_2026-11-09.zip",
   "checkpoints": "checkpoints/w00_main/FOURARM400K_FROZEN_MODELS.zip",
   "tables": "results/w00_main/benchmark",
   "training": "results/w00_main/training",
-  "incoming": "archive/packages/incoming/w00_windows_2026-11-09",
+  "incoming": "../uav_thesis_storage_2026-11-18/preserved/archive/packages/incoming/w00_windows_2026-11-09",
   "ablation_checkpoints": [
     {
       "variant": "mlp",
@@ -89,13 +89,23 @@
     "scripts/plotting/plot_w00_metric.py": "arithmetic mean of explicit input metric by group and x; no pooled-ratio conversion"
   },
   "frozen_archives": {
-    "archive/frozen_sources/appendix_w05/uav_thesis_source_2026-11-08_2.zip": "accfb57c3c0d187678afb0601db7941da941f19f77e3e1161a3dc2752bcc77a9",
-    "archive/frozen_sources/w00_ablation/uav_thesis_source_2026-11-09.zip": "47489d002d4e8025b5966db236bcef655efeaaed6e85a4920eaec2a66234dd65",
-    "archive/frozen_sources/w00_ablation/UAV_W00_CR_ABLATION_DATASET.zip": "c6c42c0a668e65d91c7ada636728f85b2f1343df617860a73061653fb67cb016",
-    "archive/frozen_sources/w00_main_returnfix/UAV_MULTI400K_LPFIX_CPU_DATASET.zip": "ecf5e546980cb04b375be72c99accf29c3a4abdd682530cdcb00115a07fd7972",
-    "archive/frozen_sources/w00_main_returnfix/uav_thesis_source_2026-11-07_2.zip": "0cf0efb06988762348be4cf7a19e9bd1d2b2b699471175a3e6cc65d1256782dc",
-    "archive/frozen_sources/w00_main_training/UAV_DRL400K_DATASET.zip": "4019c6979acdd45a9fe253b437ccc9fa4fcfc87c650af581fccdb4f2c661c500",
-    "archive/frozen_sources/w00_main_training/UAV_MULTI400K_CPU_DATASET.zip": "550a392b2d50d0b97bb4d82d917d6a6e0a2d323ca18edd937399049ee3df2b75",
-    "archive/frozen_sources/appendix_w05/audit/uav_thesis_source_2026-11-09.zip": "58c8cf922f21bd729ddf2d8ee2759d86e85d84d72ffc35db437481037701bb8a"
-  }
+    "../uav_thesis_storage_2026-11-18/preserved/archive/frozen_sources/appendix_w05/uav_thesis_source_2026-11-08_2.zip": "accfb57c3c0d187678afb0601db7941da941f19f77e3e1161a3dc2752bcc77a9",
+    "../uav_thesis_storage_2026-11-18/preserved/archive/frozen_sources/w00_ablation/uav_thesis_source_2026-11-09.zip": "47489d002d4e8025b5966db236bcef655efeaaed6e85a4920eaec2a66234dd65",
+    "../uav_thesis_storage_2026-11-18/preserved/archive/frozen_sources/w00_ablation/UAV_W00_CR_ABLATION_DATASET.zip": "c6c42c0a668e65d91c7ada636728f85b2f1343df617860a73061653fb67cb016",
+    "../uav_thesis_storage_2026-11-18/preserved/archive/frozen_sources/w00_main_returnfix/UAV_MULTI400K_LPFIX_CPU_DATASET.zip": "ecf5e546980cb04b375be72c99accf29c3a4abdd682530cdcb00115a07fd7972",
+    "../uav_thesis_storage_2026-11-18/preserved/archive/frozen_sources/w00_main_returnfix/uav_thesis_source_2026-11-07_2.zip": "0cf0efb06988762348be4cf7a19e9bd1d2b2b699471175a3e6cc65d1256782dc",
+    "../uav_thesis_storage_2026-11-18/preserved/archive/frozen_sources/w00_main_training/UAV_DRL400K_DATASET.zip": "4019c6979acdd45a9fe253b437ccc9fa4fcfc87c650af581fccdb4f2c661c500",
+    "../uav_thesis_storage_2026-11-18/preserved/archive/frozen_sources/w00_main_training/UAV_MULTI400K_CPU_DATASET.zip": "550a392b2d50d0b97bb4d82d917d6a6e0a2d323ca18edd937399049ee3df2b75",
+    "../uav_thesis_storage_2026-11-18/preserved/archive/frozen_sources/appendix_w05/audit/uav_thesis_source_2026-11-09.zip": "58c8cf922f21bd729ddf2d8ee2759d86e85d84d72ffc35db437481037701bb8a"
+  },
+  "canonical_paths": "configs/repository_paths.json",
+  "source_exporter": "scripts/packaging/export_source.py",
+  "local_entrypoints": {
+    "train": "run.py train",
+    "eval": "run.py eval"
+  },
+  "active_main_source": "src/",
+  "active_ablation_source": "archive/frozen_sources/w00_ablation/extracted/uav_thesis",
+  "raw": "results/w00_main/raw",
+  "training_runs": "results/w00_main/training_runs"
 }

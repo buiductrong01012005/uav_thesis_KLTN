@@ -1,94 +1,94 @@
 {
   "version": "final400k_delivery_assets_v1",
   "download_url": null,
-  "download_note": "No remote URL supplied. Restore from these local original archive paths; rs (2).zip is the owner-selected checkpoint backup.",
+  "download_note": "Original archives retained at the resolved paths below; exact duplicates refer to the SHA-256-matched keeper.",
   "archives": [
     {
-      "path": "archive/packages/incoming/final400k/FOURARM400K_FROZEN_MODELS.zip",
+      "path": "checkpoints/w00_main/FOURARM400K_FROZEN_MODELS.zip",
       "bytes": 4572710,
       "sha256": "e6a97142ea300d6cd1edacb733948609996207a604fc269c658a8817462bc67e"
     },
     {
-      "path": "archive/packages/incoming/final400k/KLTN_400K_script_va_hinh.zip",
+      "path": "../uav_thesis_storage_2026-11-18/preserved/archive/packages/incoming/final400k/KLTN_400K_script_va_hinh.zip",
       "bytes": 169719,
       "sha256": "8a017c8a21ef1f0cfdf0f27e6d3347133ab366fa989ea2fe6138e4abecf59fe5"
     },
     {
-      "path": "archive/packages/incoming/final400k/MULTI400K_CH_S551-552-553_P1-2_REVIEW.zip",
+      "path": "../uav_thesis_storage_2026-11-18/preserved/archive/packages/incoming/final400k/MULTI400K_CH_S551-552-553_P1-2_REVIEW.zip",
       "bytes": 780592650,
       "sha256": "96bf2cc615da8269f2d76a65bcece6da09ffcf4b1d64da25b69cc243eb4d19ab"
     },
     {
-      "path": "archive/packages/incoming/final400k/MULTI400K_CN_S551-552-553_P1-2_RESUME.zip",
+      "path": "../uav_thesis_storage_2026-11-18/preserved/archive/packages/incoming/final400k/MULTI400K_CN_S551-552-553_P1-2_RESUME.zip",
       "bytes": 556136897,
       "sha256": "452a1253ba8fbd3996084541ab6a89a1294c9283fe6627b484fefff5e9fa652f"
     },
     {
-      "path": "archive/packages/incoming/final400k/MULTI400K_CN_S553_P1-2_REVIEW.zip",
+      "path": "../uav_thesis_storage_2026-11-18/preserved/archive/packages/incoming/final400k/MULTI400K_CN_S553_P1-2_REVIEW.zip",
       "bytes": 239369411,
       "sha256": "291ee7fa943548f45f6b0d4351961e2c2fa8e8e8154c3fee3475dbf4ea13ba1e"
     },
     {
-      "path": "archive/packages/incoming/final400k/MULTI400K_CR_S551-552-553_P1-2_REVIEW.zip",
+      "path": "../uav_thesis_storage_2026-11-18/preserved/archive/packages/incoming/final400k/MULTI400K_CR_S551-552-553_P1-2_REVIEW.zip",
       "bytes": 755996346,
       "sha256": "2bda4b763c87fe7303ea18e9de7e22b7ee38eb5aad22c068e7eb32227868ff8c"
     },
     {
-      "path": "archive/packages/incoming/final400k/MULTI400K_DYNAMIC_AR_PART1_REVIEW.zip",
+      "path": "../uav_thesis_storage_2026-11-18/preserved/archive/packages/incoming/final400k/MULTI400K_DYNAMIC_AR_PART1_REVIEW.zip",
       "bytes": 122152886,
       "sha256": "397b0d33228751733e32f47c1996c640e84f25adbe5e2b65fbaafc3acda835b7"
     },
     {
-      "path": "archive/packages/incoming/final400k/MULTI400K_DYNAMIC_AR_PART2_REVIEW.zip",
+      "path": "../uav_thesis_storage_2026-11-18/preserved/archive/packages/incoming/final400k/MULTI400K_DYNAMIC_AR_PART2_REVIEW.zip",
       "bytes": 122130265,
       "sha256": "edc2873b9135a7c9612f69efeb785e91d7a40a7e556ec015ab90cbab39989376"
     },
     {
-      "path": "archive/packages/incoming/final400k/MULTI400K_HEURISTIC_HO_PART1_REVIEW.zip",
+      "path": "../uav_thesis_storage_2026-11-18/preserved/archive/packages/incoming/final400k/MULTI400K_HEURISTIC_HO_PART1_REVIEW.zip",
       "bytes": 125061519,
       "sha256": "85c9652c76a0f5e171d29725d899aa42fdcda7f8ddb95a77a3bd9e5d3594409d"
     },
     {
-      "path": "archive/packages/incoming/final400k/MULTI400K_HEURISTIC_HO_PART2_REVIEW.zip",
+      "path": "../uav_thesis_storage_2026-11-18/preserved/archive/packages/incoming/final400k/MULTI400K_HEURISTIC_HO_PART2_REVIEW.zip",
       "bytes": 124673486,
       "sha256": "5b3178faf62306c0ce0abb4f12cb114de7d8193346573bbd6a084e21ab4d1ed1"
     },
     {
-      "path": "archive/packages/incoming/final400k/MULTI400K_H_ONLY_S551-552-553_P1-2_REVIEW.zip",
+      "path": "../uav_thesis_storage_2026-11-18/preserved/archive/packages/incoming/final400k/MULTI400K_H_ONLY_S551-552-553_P1-2_REVIEW.zip",
       "bytes": 778437234,
       "sha256": "a92a705388710c682cbe0505481d309e80c82e4f2526fa2c0965cde4a356f5d5"
     },
     {
-      "path": "archive/packages/incoming/final400k/rs (2).zip",
+      "path": "../uav_thesis_storage_2026-11-18/preserved/archive/packages/incoming/final400k/rs (2).zip",
       "bytes": 8121980,
       "sha256": "0b702f8286c06542060b842652d0b3d1ba02dce178ea3cca903ad302a04c14bf"
     },
     {
-      "path": "archive/packages/incoming/final400k/SEVEN_CONFIG_400K_FINAL_BENCHMARK (1).zip",
+      "path": "../uav_thesis_storage_2026-11-18/preserved/archive/packages/incoming/final400k/SEVEN_CONFIG_400K_FINAL_BENCHMARK (1).zip",
       "bytes": 601117,
       "sha256": "dcfef76942313155e3780eb1bf3e903a4c910e4256babce6b9f7737e40b4de74"
     },
     {
-      "path": "archive/packages/incoming/final400k/UAV_BENCHMARK_400K_KAGGLE_CPU_RETURNFIX (2).zip",
+      "path": "../uav_thesis_storage_2026-11-18/preserved/archive/packages/incoming/final400k/UAV_BENCHMARK_400K_KAGGLE_CPU_RETURNFIX (2).zip",
       "bytes": 12512506,
       "sha256": "61407eea3426eb91ca3bd619879c282ae83da0e7905b33a10eb28292be16e566"
     },
     {
-      "path": "archive/packages/incoming/final400k/MULTI400K_RANDOM_10SEEDS_REVIEW.zip",
+      "path": "../uav_thesis_storage_2026-11-18/preserved/archive/packages/incoming/final400k/MULTI400K_RANDOM_10SEEDS_REVIEW.zip",
       "bytes": 230131383,
       "sha256": "c2f61ecf3e478e921de7cd5bdd56d43d7a6c1670accc42fbaa891db1d0a4e9d6"
     }
   ],
   "final_tables": {
-    "results/final400k/benchmark/aggregate.csv": "8552dabab112ee0ffa7d76f5e1a7d0e32d9c4bed1e5189c02863eeeb30a8b584",
-    "results/final400k/benchmark/audit.json": "da5adf817d6c219baeee3d8867cde3fd922a74f3bbd73b27cbfc38674c8d0642",
-    "results/final400k/benchmark/paired_comparison.csv": "1051d1495b436aefaa083827a34a42d0c327a75762900e998ce68cb7eb28e63e",
-    "results/final400k/benchmark/per_run.csv": "75c94e11d62befd85451acb72014cd27f202d9f7f2b143c6151151b90e411983",
-    "results/final400k/benchmark/per_test_seed.csv": "2b8cce462fbe804e73221a647a9e60d8cc4ccff809e24099d5e750258df1ab5e",
-    "results/final400k/benchmark/per_training_seed.csv": "f0eb7b3e1feb6df9a1c084c294aca79dd4e15dfbdf131272c5c781b3b4b5523f",
-    "results/final400k/benchmark/temporal_1000slot.csv": "bf9f7ac89b65c0fd41898e577702221894861b86db08d57a63364ccb9191be4e"
+    "results/w00_main/benchmark/aggregate.csv": "8552dabab112ee0ffa7d76f5e1a7d0e32d9c4bed1e5189c02863eeeb30a8b584",
+    "results/w00_main/benchmark/audit.json": "da5adf817d6c219baeee3d8867cde3fd922a74f3bbd73b27cbfc38674c8d0642",
+    "results/w00_main/benchmark/paired_comparison.csv": "1051d1495b436aefaa083827a34a42d0c327a75762900e998ce68cb7eb28e63e",
+    "results/w00_main/benchmark/per_run.csv": "75c94e11d62befd85451acb72014cd27f202d9f7f2b143c6151151b90e411983",
+    "results/w00_main/benchmark/per_test_seed.csv": "2b8cce462fbe804e73221a647a9e60d8cc4ccff809e24099d5e750258df1ab5e",
+    "results/w00_main/benchmark/per_training_seed.csv": "f0eb7b3e1feb6df9a1c084c294aca79dd4e15dfbdf131272c5c781b3b4b5523f",
+    "results/w00_main/benchmark/temporal_1000slot.csv": "bf9f7ac89b65c0fd41898e577702221894861b86db08d57a63364ccb9191be4e"
   },
-  "frozen_bundle": "results/benchmark_assets/fourarm400k",
+  "frozen_bundle": "checkpoints/w00_main/FOURARM400K_FROZEN_MODELS.zip",
   "checkpoint_registry": "configs/bs5_fourarm400k_frozen_models.json",
   "raw_runs_present": 150,
   "raw_runs_missing": [],
@@ -101,7 +101,7 @@
         "bytes": 235042762
       },
       "current": {
-        "path": "archive/packages/incoming/final400k/MULTI400K_CN_S553_P1-2_REVIEW.zip",
+        "path": "../uav_thesis_storage_2026-11-18/preserved/archive/packages/incoming/final400k/MULTI400K_CN_S553_P1-2_REVIEW.zip",
         "bytes": 239369411,
         "sha256": "291ee7fa943548f45f6b0d4351961e2c2fa8e8e8154c3fee3475dbf4ea13ba1e"
       }

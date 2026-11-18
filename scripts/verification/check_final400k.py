@@ -108,10 +108,10 @@ def check_models(folder):
 
 def main():
     parser = argparse.ArgumentParser(description=__doc__)
-    parser.add_argument("--input", type=Path, default=ROOT / "results/final400k/benchmark")
+    parser.add_argument("--input", type=Path, default=ROOT / "results/w00_main/benchmark")
     parser.add_argument("--models", type=Path)
     parser.add_argument("--raw", type=Path)
-    parser.add_argument("--output", type=Path, default=ROOT / "results/final400k/verification.json")
+    parser.add_argument("--output", type=Path, default=ROOT / "runs/local/w00_verification.json")
     args = parser.parse_args()
     result, runs = check_tables(args.input)
     result["files_sha256"] = {p.name: hashlib.sha256(p.read_bytes()).hexdigest()

@@ -11,9 +11,9 @@ import pandas as pd
 
 import argparse
 parser = argparse.ArgumentParser(description="Draw the three thesis figures from audited CSVs; no rollout.")
-parser.add_argument("--input", type=Path, default=Path("results/final400k/benchmark"))
-parser.add_argument("--training", type=Path, default=Path("results/final400k/training"))
-parser.add_argument("--output", type=Path, default=Path("results/final400k/figures"))
+parser.add_argument("--input", type=Path, default=Path("results/w00_main/benchmark"))
+parser.add_argument("--training", type=Path, default=Path("results/w00_main/training"))
+parser.add_argument("--output", type=Path, default=Path("runs/local/final400k_figures"))
 args = parser.parse_args()
 root = args.input
 output = args.output

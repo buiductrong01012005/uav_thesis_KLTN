@@ -65,7 +65,8 @@ def temporal_table(input_dir, runs):
 
 def rebuild(input_dir, output):
     output = Path(output)
-    if output.resolve() == (ROOT / "results/final400k/benchmark").resolve():
+    if output.resolve() in {(ROOT / name).resolve() for name in
+                            ("results/final400k/benchmark", "results/w00_main/benchmark")}:
         raise ValueError("Choose a new output directory; preserve the delivered final CSVs")
     metadata = report(input_dir, output, include_random=True)
     products = ["per_test_seed.csv", "per_training_seed.csv", "temporal_1000slot.csv", "audit.json"]
@@ -87,8 +88,8 @@ def rebuild(input_dir, output):
 
 def main():
     parser = argparse.ArgumentParser(description=__doc__)
-    parser.add_argument("--input", type=Path, default=ROOT / "results/final400k/raw")
-    parser.add_argument("--output", type=Path, default=ROOT / "results/final400k/raw_rebuilt")
+    parser.add_argument("--input", type=Path, default=ROOT / "results/w00_main/raw")
+    parser.add_argument("--output", type=Path, default=ROOT / "runs/local/w00_raw_rebuilt")
     args = parser.parse_args()
     metadata = rebuild(args.input, args.output)
     print(json.dumps({key: metadata[key] for key in

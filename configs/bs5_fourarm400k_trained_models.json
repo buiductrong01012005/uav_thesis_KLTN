@@ -12,31 +12,31 @@
     "551": {
       "training_seed": 551,
       "training_steps": 399600,
-      "root": "results/drl400k_training/seed_551",
+      "root": "results/w00_main/training_runs",
       "models": {
         "C-H": {
           "checkpoint": {
-            "path": "results/drl400k_training/seed_551/DRL_CH_S551_400K/best.pt",
+            "path": "results/w00_main/training_runs/CH-551/best.pt",
             "sha256": "8fb6a58a7e9c22327f8356c8b01eda3fdd5604255d81b4d25903ea36a4b4931f"
           },
           "selected_step": 366000,
           "selection_metric": "reward_total",
           "validation_score": 0.36726986930127903,
           "protocol": {
-            "path": "results/drl400k_training/seed_551/DRL_CH_S551_400K/protocol.json",
+            "path": "results/w00_main/training_runs/CH-551/protocol.json",
             "sha256": "c4658fd63590aadafd036de537e0281f9722f64cef20e40bffc90b945d0ca426"
           },
           "protocol_digest": "53eb6cabb6c268c92a3347f39556c375e87c1857e16d38a6e252354e15b4400d",
           "status": {
-            "path": "results/drl400k_training/seed_551/DRL_CH_S551_400K/status.json",
+            "path": "results/w00_main/training_runs/CH-551/status.json",
             "sha256": "31eae66e18c6414d000064533680a920c5a48926316bbe44b60de4fee4d2c76a"
           },
           "validation": {
-            "path": "results/drl400k_training/seed_551/DRL_CH_S551_400K/validation.csv",
+            "path": "results/w00_main/training_runs/CH-551/validation.csv",
             "sha256": "fce52f3d95d0e08bda2246d8ded3ff1ab35cbe59bc3062ec01a095a554103220"
           },
           "original_archive": {
-            "path": "archive/packages/incoming/drl400k/seed_551/DRL_CH_S551_400K_REVIEW.zip",
+            "path": "../uav_thesis_storage_2026-11-18/preserved/archive/packages/incoming/drl400k/seed_551/DRL_CH_S551_400K_REVIEW.zip",
             "sha256": "9bd6c4347de8ed7328e0b36d7fa37dd46156cb813255d372aeeb7e75cad85e24"
           },
           "policy_actions": 15,
@@ -47,11 +47,11 @@
               "selected_step": 366000,
               "validation_score": 0.36726986930127903,
               "checkpoint": {
-                "path": "results/drl400k_training/seed_551/DRL_CH_S551_400K/best.pt",
+                "path": "results/w00_main/training_runs/CH-551/best.pt",
                 "sha256": "8fb6a58a7e9c22327f8356c8b01eda3fdd5604255d81b4d25903ea36a4b4931f"
               },
               "selected_checkpoint": {
-                "path": "results/drl400k_training/seed_551/DRL_CH_S551_400K/selected/best_step366000.pt",
+                "path": "results/w00_main/training_runs/CH-551/selected/best_step366000.pt",
                 "sha256": "8fb6a58a7e9c22327f8356c8b01eda3fdd5604255d81b4d25903ea36a4b4931f"
               }
             },
@@ -59,11 +59,11 @@
               "selected_step": 366000,
               "validation_score": 0.46223316263786096,
               "checkpoint": {
-                "path": "results/drl400k_training/seed_551/DRL_CH_S551_400K/best_service.pt",
+                "path": "../uav_thesis_storage_2026-11-18/preserved/results/drl400k_training/seed_551/DRL_CH_S551_400K/best_service.pt",
                 "sha256": "c6360c9872d2766e050b3017cd9fe22efc08ccc6f4db81e9d5783b406feb8c1e"
               },
               "selected_checkpoint": {
-                "path": "results/drl400k_training/seed_551/DRL_CH_S551_400K/selected/best_service_step366000.pt",
+                "path": "../uav_thesis_storage_2026-11-18/preserved/results/drl400k_training/seed_551/DRL_CH_S551_400K/best_service.pt",
                 "sha256": "c6360c9872d2766e050b3017cd9fe22efc08ccc6f4db81e9d5783b406feb8c1e"
               }
             },
@@ -71,11 +71,11 @@
               "selected_step": 366000,
               "validation_score": 160.0019398351187,
               "checkpoint": {
-                "path": "results/drl400k_training/seed_551/DRL_CH_S551_400K/best_throughput.pt",
+                "path": "../uav_thesis_storage_2026-11-18/preserved/results/drl400k_training/seed_551/DRL_CH_S551_400K/best_throughput.pt",
                 "sha256": "8e5eb96233caa0a1ba083e68ace57d189338b392ec0f3b34bfda814ae8499d9a"
               },
               "selected_checkpoint": {
-                "path": "results/drl400k_training/seed_551/DRL_CH_S551_400K/selected/best_throughput_step366000.pt",
+                "path": "../uav_thesis_storage_2026-11-18/preserved/results/drl400k_training/seed_551/DRL_CH_S551_400K/best_throughput.pt",
                 "sha256": "8e5eb96233caa0a1ba083e68ace57d189338b392ec0f3b34bfda814ae8499d9a"
               }
             },
@@ -83,11 +83,11 @@
               "selected_step": 294000,
               "validation_score": 0.49927777777777776,
               "checkpoint": {
-                "path": "results/drl400k_training/seed_551/DRL_CH_S551_400K/best_coverage.pt",
+                "path": "../uav_thesis_storage_2026-11-18/preserved/results/drl400k_training/seed_551/DRL_CH_S551_400K/best_coverage.pt",
                 "sha256": "8fa4d250c2102a93d04d2953908cc53efbca59cbe3f1075aa1794334c7ffc7ab"
               },
               "selected_checkpoint": {
-                "path": "results/drl400k_training/seed_551/DRL_CH_S551_400K/selected/best_coverage_step294000.pt",
+                "path": "../uav_thesis_storage_2026-11-18/preserved/results/drl400k_training/seed_551/DRL_CH_S551_400K/best_coverage.pt",
                 "sha256": "8fa4d250c2102a93d04d2953908cc53efbca59cbe3f1075aa1794334c7ffc7ab"
               }
             },
@@ -95,11 +95,11 @@
               "selected_step": 378000,
               "validation_score": 0.4841959359060184,
               "checkpoint": {
-                "path": "results/drl400k_training/seed_551/DRL_CH_S551_400K/best_jain_raw.pt",
+                "path": "../uav_thesis_storage_2026-11-18/preserved/results/drl400k_training/seed_551/DRL_CH_S551_400K/best_jain_raw.pt",
                 "sha256": "ee323c3bc55cbf7515df0dd24a361be5307862a4e1f60d77f7738364f7f74ec5"
               },
               "selected_checkpoint": {
-                "path": "results/drl400k_training/seed_551/DRL_CH_S551_400K/selected/best_jain_raw_step378000.pt",
+                "path": "../uav_thesis_storage_2026-11-18/preserved/results/drl400k_training/seed_551/DRL_CH_S551_400K/best_jain_raw.pt",
                 "sha256": "ee323c3bc55cbf7515df0dd24a361be5307862a4e1f60d77f7738364f7f74ec5"
               }
             },
@@ -107,11 +107,11 @@
               "selected_step": 348000,
               "validation_score": 0.33434722222222224,
               "checkpoint": {
-                "path": "results/drl400k_training/seed_551/DRL_CH_S551_400K/best_qos.pt",
+                "path": "../uav_thesis_storage_2026-11-18/preserved/results/drl400k_training/seed_551/DRL_CH_S551_400K/best_qos.pt",
                 "sha256": "2403bdfa8be37c525964602dba844e7db4d42b0e6b8cc2a0d58aea937c3f3f56"
               },
               "selected_checkpoint": {
-                "path": "results/drl400k_training/seed_551/DRL_CH_S551_400K/selected/best_qos_step348000.pt",
+                "path": "../uav_thesis_storage_2026-11-18/preserved/results/drl400k_training/seed_551/DRL_CH_S551_400K/best_qos.pt",
                 "sha256": "2403bdfa8be37c525964602dba844e7db4d42b0e6b8cc2a0d58aea937c3f3f56"
               }
             }
@@ -119,27 +119,27 @@
         },
         "C-N": {
           "checkpoint": {
-            "path": "results/drl400k_training/seed_551/DRL_CN_S551_400K/best.pt",
+            "path": "results/w00_main/training_runs/CN-551/best.pt",
             "sha256": "89da2133cb2b875df22fa79d82508d2021778d6b4a252aaf33e5a9d1ffd536ba"
           },
           "selected_step": 384000,
           "selection_metric": "reward_total",
           "validation_score": 0.06936622715886623,
           "protocol": {
-            "path": "results/drl400k_training/seed_551/DRL_CN_S551_400K/protocol.json",
+            "path": "results/w00_main/training_runs/CN-551/protocol.json",
             "sha256": "1a5224264b15b381499f07cf46fa72bd5fecd8be5ad5e37e746ddc228199a944"
           },
           "protocol_digest": "c84423f04f6875d6c3f36d39e1414cabd33691413df2c7ffa1b0cdf97202a6ad",
           "status": {
-            "path": "results/drl400k_training/seed_551/DRL_CN_S551_400K/status.json",
+            "path": "results/w00_main/training_runs/CN-551/status.json",
             "sha256": "0c055eeedd4df4a676631405c748bcbc8b00067823047f4bf58776ffb1965f26"
           },
           "validation": {
-            "path": "results/drl400k_training/seed_551/DRL_CN_S551_400K/validation.csv",
+            "path": "results/w00_main/training_runs/CN-551/validation.csv",
             "sha256": "00225eaee6449342992d748bc45e05375a8b46c56919b5b31cf46c060a4b2151"
           },
           "original_archive": {
-            "path": "archive/packages/incoming/drl400k/seed_551/DRL_CN_S551_400K_REVIEW.zip",
+            "path": "../uav_thesis_storage_2026-11-18/preserved/archive/packages/incoming/drl400k/seed_551/DRL_CN_S551_400K_REVIEW.zip",
             "sha256": "df37cfaf8c02722ae8a3af99d059e4a30cdafec96d764efa918a5050f5e6b128"
           },
           "policy_actions": 10,
@@ -150,11 +150,11 @@
               "selected_step": 384000,
               "validation_score": 0.06936622715886623,
               "checkpoint": {
-                "path": "results/drl400k_training/seed_551/DRL_CN_S551_400K/best.pt",
+                "path": "results/w00_main/training_runs/CN-551/best.pt",
                 "sha256": "89da2133cb2b875df22fa79d82508d2021778d6b4a252aaf33e5a9d1ffd536ba"
               },
               "selected_checkpoint": {
-                "path": "results/drl400k_training/seed_551/DRL_CN_S551_400K/selected/best_step384000.pt",
+                "path": "results/w00_main/training_runs/CN-551/selected/best_step384000.pt",
                 "sha256": "89da2133cb2b875df22fa79d82508d2021778d6b4a252aaf33e5a9d1ffd536ba"
               }
             },
@@ -162,11 +162,11 @@
               "selected_step": 384000,
               "validation_score": 0.16489932089771378,
               "checkpoint": {
-                "path": "results/drl400k_training/seed_551/DRL_CN_S551_400K/best_service.pt",
+                "path": "../uav_thesis_storage_2026-11-18/preserved/results/drl400k_training/seed_551/DRL_CN_S551_400K/best_service.pt",
                 "sha256": "b44dd2da8914738753e3a7381c7f0891cd3c059967ac1596852d6026671cca64"
               },
               "selected_checkpoint": {
-                "path": "results/drl400k_training/seed_551/DRL_CN_S551_400K/selected/best_service_step384000.pt",
+                "path": "../uav_thesis_storage_2026-11-18/preserved/results/drl400k_training/seed_551/DRL_CN_S551_400K/best_service.pt",
                 "sha256": "b44dd2da8914738753e3a7381c7f0891cd3c059967ac1596852d6026671cca64"
               }
             },
@@ -174,11 +174,11 @@
               "selected_step": 384000,
               "validation_score": 55.51097870093819,
               "checkpoint": {
-                "path": "results/drl400k_training/seed_551/DRL_CN_S551_400K/best_throughput.pt",
+                "path": "../uav_thesis_storage_2026-11-18/preserved/results/drl400k_training/seed_551/DRL_CN_S551_400K/best_throughput.pt",
                 "sha256": "1c83a886a9886124eacd48f0ffd2a6c58aebfab500f9f157c4d6c4e7818600b1"
               },
               "selected_checkpoint": {
-                "path": "results/drl400k_training/seed_551/DRL_CN_S551_400K/selected/best_throughput_step384000.pt",
+                "path": "../uav_thesis_storage_2026-11-18/preserved/results/drl400k_training/seed_551/DRL_CN_S551_400K/best_throughput.pt",
                 "sha256": "1c83a886a9886124eacd48f0ffd2a6c58aebfab500f9f157c4d6c4e7818600b1"
               }
             },
@@ -186,11 +186,11 @@
               "selected_step": 384000,
               "validation_score": 0.17742129629629627,
               "checkpoint": {
-                "path": "results/drl400k_training/seed_551/DRL_CN_S551_400K/best_coverage.pt",
+                "path": "../uav_thesis_storage_2026-11-18/preserved/results/drl400k_training/seed_551/DRL_CN_S551_400K/best_coverage.pt",
                 "sha256": "c12d385a8e0bfdd815f53fb1281c5d611d14b1717df9a964ba45fdf3e7c14508"
               },
               "selected_checkpoint": {
-                "path": "results/drl400k_training/seed_551/DRL_CN_S551_400K/selected/best_coverage_step384000.pt",
+                "path": "../uav_thesis_storage_2026-11-18/preserved/results/drl400k_training/seed_551/DRL_CN_S551_400K/best_coverage.pt",
                 "sha256": "c12d385a8e0bfdd815f53fb1281c5d611d14b1717df9a964ba45fdf3e7c14508"
               }
             },
@@ -198,11 +198,11 @@
               "selected_step": 384000,
               "validation_score": 0.1741421523166412,
               "checkpoint": {
-                "path": "results/drl400k_training/seed_551/DRL_CN_S551_400K/best_jain_raw.pt",
+                "path": "../uav_thesis_storage_2026-11-18/preserved/results/drl400k_training/seed_551/DRL_CN_S551_400K/best_jain_raw.pt",
                 "sha256": "ac418f1d19dfb59fb43fb2264c1edad05e53598c126378f30a3845334afce307"
               },
               "selected_checkpoint": {
-                "path": "results/drl400k_training/seed_551/DRL_CN_S551_400K/selected/best_jain_raw_step384000.pt",
+                "path": "../uav_thesis_storage_2026-11-18/preserved/results/drl400k_training/seed_551/DRL_CN_S551_400K/best_jain_raw.pt",
                 "sha256": "ac418f1d19dfb59fb43fb2264c1edad05e53598c126378f30a3845334afce307"
               }
             },
@@ -210,11 +210,11 @@
               "selected_step": 282000,
               "validation_score": 0.09508796296296296,
               "checkpoint": {
-                "path": "results/drl400k_training/seed_551/DRL_CN_S551_400K/best_qos.pt",
+                "path": "../uav_thesis_storage_2026-11-18/preserved/results/drl400k_training/seed_551/DRL_CN_S551_400K/best_qos.pt",
                 "sha256": "09cd9c6709e1a2e4bb438472164eda29fb987da61d1ba08c0b305e8b19756189"
               },
               "selected_checkpoint": {
-                "path": "results/drl400k_training/seed_551/DRL_CN_S551_400K/selected/best_qos_step282000.pt",
+                "path": "../uav_thesis_storage_2026-11-18/preserved/results/drl400k_training/seed_551/DRL_CN_S551_400K/best_qos.pt",
                 "sha256": "09cd9c6709e1a2e4bb438472164eda29fb987da61d1ba08c0b305e8b19756189"
               }
             }
@@ -222,27 +222,27 @@
         },
         "C-R": {
           "checkpoint": {
-            "path": "results/drl400k_training/seed_551/DRL_CR_S551_400K/best.pt",
+            "path": "results/w00_main/training_runs/CR-551/best.pt",
             "sha256": "67cf386b28ae0497eabd3594a13f6596fd1e73335af4012724d6f4e1c23e6f23"
           },
           "selected_step": 399600,
           "selection_metric": "reward_total",
           "validation_score": 0.3572359994207194,
           "protocol": {
-            "path": "results/drl400k_training/seed_551/DRL_CR_S551_400K/protocol.json",
+            "path": "results/w00_main/training_runs/CR-551/protocol.json",
             "sha256": "b96d753b2b9211832daa70f15b2fa48f2ce79320fc8d0702197fcc9223ab2569"
           },
           "protocol_digest": "8b782be1afcd85c7d00aad23f290d99aad9fc6cd9ba151d59efc9134142f08d4",
           "status": {
-            "path": "results/drl400k_training/seed_551/DRL_CR_S551_400K/status.json",
+            "path": "results/w00_main/training_runs/CR-551/status.json",
             "sha256": "56cd838cd83fc1db9f16f030a46e3ff0dd037b765c4decc4d19d9d68ad78191a"
           },
           "validation": {
-            "path": "results/drl400k_training/seed_551/DRL_CR_S551_400K/validation.csv",
+            "path": "results/w00_main/training_runs/CR-551/validation.csv",
             "sha256": "af40a497b5c7140ed986b9f33a5d9d2af81990d91b6bc1e3a9743a2680f92556"
           },
           "original_archive": {
-            "path": "archive/packages/incoming/drl400k/seed_551/DRL_CR_S551_400K_REVIEW.zip",
+            "path": "../uav_thesis_storage_2026-11-18/preserved/archive/packages/incoming/drl400k/seed_551/DRL_CR_S551_400K_REVIEW.zip",
             "sha256": "55515edf22d20f7d0a5f46fc06b843b1f12088a227f58ab126c244aaae844367"
           },
           "policy_actions": 10,
@@ -253,11 +253,11 @@
               "selected_step": 399600,
               "validation_score": 0.3572359994207194,
               "checkpoint": {
-                "path": "results/drl400k_training/seed_551/DRL_CR_S551_400K/best.pt",
+                "path": "results/w00_main/training_runs/CR-551/best.pt",
                 "sha256": "67cf386b28ae0497eabd3594a13f6596fd1e73335af4012724d6f4e1c23e6f23"
               },
               "selected_checkpoint": {
-                "path": "results/drl400k_training/seed_551/DRL_CR_S551_400K/selected/best_step399600.pt",
+                "path": "results/w00_main/training_runs/CR-551/selected/best_step399600.pt",
                 "sha256": "67cf386b28ae0497eabd3594a13f6596fd1e73335af4012724d6f4e1c23e6f23"
               }
             },
@@ -265,11 +265,11 @@
               "selected_step": 399600,
               "validation_score": 0.45392810090602737,
               "checkpoint": {
-                "path": "results/drl400k_training/seed_551/DRL_CR_S551_400K/best_service.pt",
+                "path": "../uav_thesis_storage_2026-11-18/preserved/results/drl400k_training/seed_551/DRL_CR_S551_400K/best_service.pt",
                 "sha256": "86fbdaa54f4218463bd60d89b3b5747b696c77c993c9ed9cfbe53f2596d7b9d8"
               },
               "selected_checkpoint": {
-                "path": "results/drl400k_training/seed_551/DRL_CR_S551_400K/selected/best_service_step399600.pt",
+                "path": "../uav_thesis_storage_2026-11-18/preserved/results/drl400k_training/seed_551/DRL_CR_S551_400K/best_service.pt",
                 "sha256": "86fbdaa54f4218463bd60d89b3b5747b696c77c993c9ed9cfbe53f2596d7b9d8"
               }
             },
@@ -277,11 +277,11 @@
               "selected_step": 396000,
               "validation_score": 158.17099489046166,
               "checkpoint": {
-                "path": "results/drl400k_training/seed_551/DRL_CR_S551_400K/best_throughput.pt",
+                "path": "../uav_thesis_storage_2026-11-18/preserved/results/drl400k_training/seed_551/DRL_CR_S551_400K/best_throughput.pt",
                 "sha256": "0a9c779d7261ddbeddf7d85a5091b72978bdccbdc307ed13d164445fcf9c6517"
               },
               "selected_checkpoint": {
-                "path": "results/drl400k_training/seed_551/DRL_CR_S551_400K/selected/best_throughput_step396000.pt",
+                "path": "../uav_thesis_storage_2026-11-18/preserved/results/drl400k_training/seed_551/DRL_CR_S551_400K/best_throughput.pt",
                 "sha256": "0a9c779d7261ddbeddf7d85a5091b72978bdccbdc307ed13d164445fcf9c6517"
               }
             },
@@ -289,11 +289,11 @@
               "selected_step": 399600,
               "validation_score": 0.49298611111111107,
               "checkpoint": {
-                "path": "results/drl400k_training/seed_551/DRL_CR_S551_400K/best_coverage.pt",
+                "path": "../uav_thesis_storage_2026-11-18/preserved/results/drl400k_training/seed_551/DRL_CR_S551_400K/best_coverage.pt",
                 "sha256": "304b6e9b06d505fb59df4789b8ab956356d9a1fa3e7a3f506882f6df0e5c7e5a"
               },
               "selected_checkpoint": {
-                "path": "results/drl400k_training/seed_551/DRL_CR_S551_400K/selected/best_coverage_step399600.pt",
+                "path": "../uav_thesis_storage_2026-11-18/preserved/results/drl400k_training/seed_551/DRL_CR_S551_400K/best_coverage.pt",
                 "sha256": "304b6e9b06d505fb59df4789b8ab956356d9a1fa3e7a3f506882f6df0e5c7e5a"
               }
             },
@@ -301,11 +301,11 @@
               "selected_step": 396000,
               "validation_score": 0.4739914499603541,
               "checkpoint": {
-                "path": "results/drl400k_training/seed_551/DRL_CR_S551_400K/best_jain_raw.pt",
+                "path": "../uav_thesis_storage_2026-11-18/preserved/results/drl400k_training/seed_551/DRL_CR_S551_400K/best_jain_raw.pt",
                 "sha256": "5b3032d67ba43f57cccfdfa0258744c1efa4ffa1f1b2ac14d3049baab945fecf"
               },
               "selected_checkpoint": {
-                "path": "results/drl400k_training/seed_551/DRL_CR_S551_400K/selected/best_jain_raw_step396000.pt",
+                "path": "../uav_thesis_storage_2026-11-18/preserved/results/drl400k_training/seed_551/DRL_CR_S551_400K/best_jain_raw.pt",
                 "sha256": "5b3032d67ba43f57cccfdfa0258744c1efa4ffa1f1b2ac14d3049baab945fecf"
               }
             },
@@ -313,11 +313,11 @@
               "selected_step": 399600,
               "validation_score": 0.33720370370370367,
               "checkpoint": {
-                "path": "results/drl400k_training/seed_551/DRL_CR_S551_400K/best_qos.pt",
+                "path": "../uav_thesis_storage_2026-11-18/preserved/results/drl400k_training/seed_551/DRL_CR_S551_400K/best_qos.pt",
                 "sha256": "87d59952cdea4ac5df24824de8475381b163291003aa7a6cf06424a87ddd6783"
               },
               "selected_checkpoint": {
-                "path": "results/drl400k_training/seed_551/DRL_CR_S551_400K/selected/best_qos_step399600.pt",
+                "path": "../uav_thesis_storage_2026-11-18/preserved/results/drl400k_training/seed_551/DRL_CR_S551_400K/best_qos.pt",
                 "sha256": "87d59952cdea4ac5df24824de8475381b163291003aa7a6cf06424a87ddd6783"
               }
             }
@@ -325,27 +325,27 @@
         },
         "H-only": {
           "checkpoint": {
-            "path": "results/drl400k_training/seed_551/DRL_H_ONLY_S551_400K/best.pt",
+            "path": "results/w00_main/training_runs/HO-551/best.pt",
             "sha256": "10bdb36f49aa8c19b6252ecee5f508fa034b6abb965f2dfa8afd655615793899"
           },
           "selected_step": 330000,
           "selection_metric": "reward_total",
           "validation_score": 0.3947942031130981,
           "protocol": {
-            "path": "results/drl400k_training/seed_551/DRL_H_ONLY_S551_400K/protocol.json",
+            "path": "results/w00_main/training_runs/HO-551/protocol.json",
             "sha256": "4837879c8120ce0f5e82d2114c9fad3785dd51345b4c2e7aed4fa021636a39d1"
           },
           "protocol_digest": "2a523e2248e659707f297d378e194beacb2f72c7a30785e98c4decfa2500c5aa",
           "status": {
-            "path": "results/drl400k_training/seed_551/DRL_H_ONLY_S551_400K/status.json",
+            "path": "results/w00_main/training_runs/HO-551/status.json",
             "sha256": "aa3d6040891fd35225338a3c6e10416223bbef3d72bdd29486cc2f1f7cff802e"
           },
           "validation": {
-            "path": "results/drl400k_training/seed_551/DRL_H_ONLY_S551_400K/validation.csv",
+            "path": "results/w00_main/training_runs/HO-551/validation.csv",
             "sha256": "0631619a830a51a93673f0cee6e2e82b15e69ae792bb45a0747977ad0af52a82"
           },
           "original_archive": {
-            "path": "archive/packages/incoming/drl400k/seed_551/DRL_H_ONLY_S551_400K_REVIEW.zip",
+            "path": "../uav_thesis_storage_2026-11-18/preserved/archive/packages/incoming/drl400k/seed_551/DRL_H_ONLY_S551_400K_REVIEW.zip",
             "sha256": "fc8d34ef6b1fd338289ba716c3411513fdab248caf159c2db2ef9f7007df5d6d"
           },
           "policy_actions": 5,
@@ -356,11 +356,11 @@
               "selected_step": 330000,
               "validation_score": 0.3947942031130981,
               "checkpoint": {
-                "path": "results/drl400k_training/seed_551/DRL_H_ONLY_S551_400K/best.pt",
+                "path": "results/w00_main/training_runs/HO-551/best.pt",
                 "sha256": "10bdb36f49aa8c19b6252ecee5f508fa034b6abb965f2dfa8afd655615793899"
               },
               "selected_checkpoint": {
-                "path": "results/drl400k_training/seed_551/DRL_H_ONLY_S551_400K/selected/best_step330000.pt",
+                "path": "results/w00_main/training_runs/HO-551/selected/best_step330000.pt",
                 "sha256": "10bdb36f49aa8c19b6252ecee5f508fa034b6abb965f2dfa8afd655615793899"
               }
             },
@@ -368,11 +368,11 @@
               "selected_step": 216000,
               "validation_score": 0.4946718516485658,
               "checkpoint": {
-                "path": "results/drl400k_training/seed_551/DRL_H_ONLY_S551_400K/best_service.pt",
+                "path": "../uav_thesis_storage_2026-11-18/preserved/results/drl400k_training/seed_551/DRL_H_ONLY_S551_400K/best_service.pt",
                 "sha256": "dadb1b40062170f71246387f7a94428dcd6fae1fc0dc42c011e74ab57c7c86e4"
               },
               "selected_checkpoint": {
-                "path": "results/drl400k_training/seed_551/DRL_H_ONLY_S551_400K/selected/best_service_step216000.pt",
+                "path": "../uav_thesis_storage_2026-11-18/preserved/results/drl400k_training/seed_551/DRL_H_ONLY_S551_400K/best_service.pt",
                 "sha256": "dadb1b40062170f71246387f7a94428dcd6fae1fc0dc42c011e74ab57c7c86e4"
               }
             },
@@ -380,11 +380,11 @@
               "selected_step": 216000,
               "validation_score": 170.4406601870794,
               "checkpoint": {
-                "path": "results/drl400k_training/seed_551/DRL_H_ONLY_S551_400K/best_throughput.pt",
+                "path": "../uav_thesis_storage_2026-11-18/preserved/results/drl400k_training/seed_551/DRL_H_ONLY_S551_400K/best_throughput.pt",
                 "sha256": "96fde463fbb428b6fafd1b932be65e3fc78b91fc5feb9f6d40497e051b3ca2fb"
               },
               "selected_checkpoint": {
-                "path": "results/drl400k_training/seed_551/DRL_H_ONLY_S551_400K/selected/best_throughput_step216000.pt",
+                "path": "../uav_thesis_storage_2026-11-18/preserved/results/drl400k_training/seed_551/DRL_H_ONLY_S551_400K/best_throughput.pt",
                 "sha256": "96fde463fbb428b6fafd1b932be65e3fc78b91fc5feb9f6d40497e051b3ca2fb"
               }
             },
@@ -392,11 +392,11 @@
               "selected_step": 216000,
               "validation_score": 0.5341342592592593,
               "checkpoint": {
-                "path": "results/drl400k_training/seed_551/DRL_H_ONLY_S551_400K/best_coverage.pt",
+                "path": "../uav_thesis_storage_2026-11-18/preserved/results/drl400k_training/seed_551/DRL_H_ONLY_S551_400K/best_coverage.pt",
                 "sha256": "f199d16b29087d2d98b0eb90cf3357679fd4ac6a7b508907f63db106f0acec63"
               },
               "selected_checkpoint": {
-                "path": "results/drl400k_training/seed_551/DRL_H_ONLY_S551_400K/selected/best_coverage_step216000.pt",
+                "path": "../uav_thesis_storage_2026-11-18/preserved/results/drl400k_training/seed_551/DRL_H_ONLY_S551_400K/best_coverage.pt",
                 "sha256": "f199d16b29087d2d98b0eb90cf3357679fd4ac6a7b508907f63db106f0acec63"
               }
             },
@@ -404,11 +404,11 @@
               "selected_step": 216000,
               "validation_score": 0.5165524124464548,
               "checkpoint": {
-                "path": "results/drl400k_training/seed_551/DRL_H_ONLY_S551_400K/best_jain_raw.pt",
+                "path": "../uav_thesis_storage_2026-11-18/preserved/results/drl400k_training/seed_551/DRL_H_ONLY_S551_400K/best_jain_raw.pt",
                 "sha256": "4623f02b723715cd17d1cc338755d382b277f4a30aed501c6594bdc62417bd85"
               },
               "selected_checkpoint": {
-                "path": "results/drl400k_training/seed_551/DRL_H_ONLY_S551_400K/selected/best_jain_raw_step216000.pt",
+                "path": "../uav_thesis_storage_2026-11-18/preserved/results/drl400k_training/seed_551/DRL_H_ONLY_S551_400K/best_jain_raw.pt",
                 "sha256": "4623f02b723715cd17d1cc338755d382b277f4a30aed501c6594bdc62417bd85"
               }
             },
@@ -416,11 +416,11 @@
               "selected_step": 354000,
               "validation_score": 0.37925925925925924,
               "checkpoint": {
-                "path": "results/drl400k_training/seed_551/DRL_H_ONLY_S551_400K/best_qos.pt",
+                "path": "../uav_thesis_storage_2026-11-18/preserved/results/drl400k_training/seed_551/DRL_H_ONLY_S551_400K/best_qos.pt",
                 "sha256": "c643da48c76ce461a9269671a8886063c9270eb492bdb5ea848e3eb301cc78c0"
               },
               "selected_checkpoint": {
-                "path": "results/drl400k_training/seed_551/DRL_H_ONLY_S551_400K/selected/best_qos_step354000.pt",
+                "path": "../uav_thesis_storage_2026-11-18/preserved/results/drl400k_training/seed_551/DRL_H_ONLY_S551_400K/best_qos.pt",
                 "sha256": "c643da48c76ce461a9269671a8886063c9270eb492bdb5ea848e3eb301cc78c0"
               }
             }

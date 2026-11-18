@@ -7,9 +7,9 @@ import pytest
 
 from scripts.verification.check_final400k import check_tables
 
-TABLES = Path(__file__).resolve().parents[1] / "results/final400k/benchmark"
+TABLES = Path(__file__).resolve().parents[1] / "results/w00_main/benchmark"
 pytestmark = pytest.mark.skipif(not (TABLES / "per_run.csv").exists(),
-                                reason="Restore the ignored final benchmark tables first")
+                                reason="Restore the ignored canonical W00 benchmark tables first")
 
 
 def test_delivered_crossed_design_and_table_consistency():
@@ -64,3 +64,11 @@ def test_partial_rebuild_removes_stale_final_tables(tmp_path, monkeypatch):
         (tmp_path / name).write_text("stale output")
     assert adapter.rebuild("explicit-partial-fixture", tmp_path)["status"] == "partial"
     assert not any((tmp_path / name).exists() for name in names)
+
+
+@pytest.mark.parametrize("folder", ["results/final400k/benchmark", "results/w00_main/benchmark"])
+def test_rebuild_preserves_original_and_canonical_tables(folder):
+    from scripts.analysis.report_final400k import ROOT, rebuild
+
+    with pytest.raises(ValueError, match="preserve the delivered"):
+        rebuild("must-not-read-input", ROOT / folder)
