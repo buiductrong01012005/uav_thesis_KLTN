@@ -21,8 +21,9 @@ def enable_windows():
 
 def local_output(path):
     path = Path(path).resolve()
-    if not path.is_relative_to((ROOT / "runs/local").resolve()):
-        raise ValueError("New W00 runs must use an output under runs/local/")
+    runs = (ROOT / "runs").resolve()
+    if path == runs or not path.is_relative_to(runs):
+        raise ValueError("New W00 runs must use an output directory under runs/")
     return path
 
 
@@ -109,12 +110,20 @@ def train(argv):
     subprocess.run(command, check=True, cwd=ROOT)
 
 
-def main():
+def evaluate(argv):
+    from scripts.evaluation.eval_w00_checkpoint import main as run_eval
+
+    return run_eval(argv)
+
+
+def main(argv=None):
     enable_windows()
+    argv = sys.argv[1:] if argv is None else list(argv)
     parser = argparse.ArgumentParser(description=__doc__)
-    parser.add_argument("command", choices=("train", "benchmark"))
-    args, remaining = parser.parse_known_args()
-    return train(remaining) if args.command == "train" else benchmark(remaining)
+    parser.add_argument("command", choices=("train", "eval", "benchmark"))
+    # Only parse the command here, leaving --help and flags to its own parser.
+    args = parser.parse_args(argv[:1])
+    return {"train": train, "eval": evaluate, "benchmark": benchmark}[args.command](argv[1:])
 
 
 if __name__ == "__main__":
