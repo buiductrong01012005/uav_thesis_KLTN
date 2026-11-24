@@ -1,150 +1,107 @@
-# UAV Thesis — Huấn luyện và đánh giá QMIX
+# UAV QMIX — bản phát triển chính
 
-## Chạy nhanh trên Windows
+Mô phỏng năm UAV phục vụ 90 UE. Bản phát triển chính nằm ngay trong repo `uav_thesis/` này.
+
+## Mở môi trường Windows PowerShell
+
+Mở PowerShell tại thư mục chứa README này:
 
 ```powershell
 conda activate uav_sim_py311
-Set-Location 'F:\Study\cloud\uavThesis\uav_thesis'
+$env:PYTHONUTF8 = '1'
 $env:PYTHONDONTWRITEBYTECODE = '1'
-
-python run.py train qmix-a --seed 551 --steps 120000 --output runs/qmix-a/seed-551
-python run.py eval --checkpoint runs/qmix-a/seed-551/best.pt --test-seed 930201 --output runs/qmix-a/seed-551/eval/seed-930201
 ```
 
-Dùng môi trường Conda `uav_sim_py311` đã cài [requirements.txt](requirements.txt) và chạy các lệnh từ thư mục repo.
-Hai lệnh đầu huấn luyện QMIX-A rồi đánh giá trực tiếp `runs/qmix-a/seed-551/best.pt` của lượt vừa chạy.
-Train/eval qua `run.py` và benchmark qua `scripts.w00` tự bật adapter Windows.
+Dùng Python 3.11 và các phiên bản trong [requirements.txt](requirements.txt). Mọi lệnh dưới đây chạy từ thư mục gốc này, trừ đoạn có `Push-Location`.
 
-## Vẽ lại sáu hình Chương 5
+## Train → eval → resume
 
-Các script riêng trong `scripts/plotting/chapter5/` đọc CSV W00 đã lưu và có thể chỉnh trực tiếp trong code. Hình 5.1 dùng dữ liệu kiểm định từ ba seed huấn luyện đến bước 399.600. Các hình dùng `per_run.csv` cần đủ 150 lượt đánh giá. Lượt train/eval mới không tự cập nhật CSV khóa luận. Chạy các lệnh sau để lưu hình vào `runs/local/chapter5-redraw/`.
+Ví dụ train QMIX-AR, seed 551, ngân sách 399.600 bước trên CPU:
 
 ```powershell
-python -m scripts.plotting.chapter5.plot_learning --training results/w00_main/training --output runs/local/chapter5-redraw
-python -m scripts.plotting.chapter5.plot_demand_breakdown --input results/w00_main/benchmark --output runs/local/chapter5-redraw
-python -m scripts.plotting.chapter5.plot_throughput_blocks --input results/w00_main/benchmark --output runs/local/chapter5-redraw
-python -m scripts.plotting.chapter5.plot_ue_service --input results/w00_main/benchmark --output runs/local/chapter5-redraw
-python -m scripts.plotting.chapter5.plot_operation --input results/w00_main/benchmark --output runs/local/chapter5-redraw
-python -m scripts.plotting.chapter5.plot_throughput_cost --input results/w00_main/benchmark --output runs/local/chapter5-redraw
+python run.py train qmix-ar --seed 551 --steps 399600 --output runs/qmix-ar-s551
+python run.py eval --checkpoint runs/qmix-ar-s551/best.pt --test-seed 930201 --slots 10000 --output runs/qmix-ar-s551-eval
 ```
 
-| Hình | Dữ liệu đầu vào | File PDF trong thư mục xuất |
-| --- | --- | --- |
-| 5.1 – Phần thưởng kiểm định | `results/w00_main/training/learning_mean_sd.csv` | `learning.pdf` |
-| 5.2 – Phân rã nhu cầu 360 Mbps | `results/w00_main/benchmark/aggregate.csv` | `W00/02b_phan_ra_nhu_cau.pdf` |
-| 5.3 – Thông lượng theo khối 1.000 slot | `results/w00_main/benchmark/temporal_1000slot.csv` | `W00/02a_thong_luong_theo_khoi.pdf` |
-| 5.4 – Số UE đạt ít nhất 1 Mbps theo slot và trong cửa sổ 5 phút | `results/w00_main/benchmark/per_run.csv` | `W00/04_ue_1mbps_slot_va_5phut.pdf` |
-| 5.5 – Yêu cầu di chuyển bị chặn và điện năng trên mỗi Mbit | `results/w00_main/benchmark/per_run.csv` | `W00/03_benchmark_van_hanh.pdf` |
-| 5.6 – Thông lượng theo điện năng và thời gian ra quyết định | `results/w00_main/benchmark/per_run.csv` | `W00/05_thong_luong_chi_phi.pdf` |
+Tên arm: `qmix-a` (C-N), `qmix-ar` (C-R), `qmix-arh` (C-H), `qmix-h` (H-only). Chọn thư mục train mới cho mỗi lượt. `best.pt` được chọn theo reward validation; giữ toàn bộ thư mục train, gồm `resolved_config.json`, `protocol.json`, `status.json`, `resume.pt` và `selected/` khi di chuyển hoặc tiếp tục model.
 
-Mỗi lệnh xuất PDF, PNG, CSV số liệu và JSON ghi thông tin về dữ liệu đầu vào. Nếu bỏ `--output`, hình ghi vào `figures/w00_main/chapter5/`. Dùng `--overwrite` để cập nhật hình đã có.
-
-## Tham số train và eval
-
-| Tên dùng trong lệnh train | Mã trong dữ liệu | Tên trong khóa luận | Vai trò của UAV |
-| --- | --- | --- | --- |
-| `qmix-a` | C-N | QMIX-A | Chỉ truy nhập |
-| `qmix-ar` | C-R | QMIX-AR | Chọn truy nhập hoặc chuyển tiếp |
-| `qmix-arh` | C-H | QMIX-ARH | Chọn truy nhập, chuyển tiếp hoặc kết hợp |
-| `qmix-h` | H-only | QMIX-H | Luôn dùng vai trò kết hợp |
-
-Train gọi `scripts/training/run_bs5_fourarm400k.py` qua `scripts.w00`, dùng cấu hình `configs/bs5_fourarm400k.json`. Runner mặc định dùng CPU, preset `service_fair`, seed 551 và 399.600 bước (mốc gọi tắt là 400K). `--steps N` truyền xuống runner thành `--total-steps N`; ngoài diagnostic, `N` phải từ 24.000 trở lên và thỏa `(N - 12000) % 1200 == 0`.
-
-Kết quả nằm ở `runs/qmix-a/seed-551/`. Mỗi lượt train mới cần thư mục chưa tồn tại trong `runs/`. File `best.pt` lưu mô hình được chọn theo phần thưởng kiểm định trung bình.
-
-Để tiếp tục một lượt đang dở, giữ nguyên lệnh và thêm `--resume`. Cần giữ cả thư mục huấn luyện, gồm `resume.pt` và `selected/`.
+Nhấn Ctrl+C một lần để dừng ở cuối episode, hoặc thêm `--pause-at-step 6000` ngay từ đầu. Tiếp tục ngân sách ban đầu:
 
 ```powershell
-python run.py train qmix-a --seed 551 --steps 120000 --output runs/qmix-a/seed-551 --resume
+python run.py train qmix-ar --resume --output runs/qmix-ar-s551
 ```
 
-Eval gọi `scripts/evaluation/eval_w00_checkpoint.py`, nạp đúng tệp `.pt` được chỉ định và đối chiếu hash/protocol/selection; không nhận ZIP. Giữ `protocol.json` cùng thư mục với `best.pt` khi sao chép checkpoint sang máy khác. Lệnh này dùng cho bốn cấu hình QMIX có CNN trong thí nghiệm W00 chính. Seed kiểm thử phải nằm trong `reserved_test_seeds` của `protocol.json`, thường là 930201–930210.
+Eval nạp đúng đường dẫn checkpoint và kiểm hash source/config/protocol/selection. Để dừng eval có lưu trạng thái, thêm `--stop-after-slots 500`; tiếp tục bằng lệnh eval cũ, cùng output và bỏ cờ dừng. Benchmark có cùng cách dừng/tiếp tục.
 
-Mặc định, lượt đánh giá chạy 10.000 slot; đổi bằng `--slots`. Nếu bỏ `--output`, kết quả ghi vào `eval/seed-<test-seed>/` trong thư mục train. Với ví dụ đầu README, thư mục `runs/qmix-a/seed-551/eval/seed-930201/seed930201/` chứa `summary.json`, `slots.csv` và `trace.npz`. Output eval phải nằm dưới `runs/`.
+Cấu hình nằm ở [environment.json](configs/environment.json), [training.json](configs/training.json), [evaluation.json](configs/evaluation.json). `scripts/train.py` và `scripts/evaluate.py` dùng chung logic với các bí danh `run.py`. Checkpoint mới dùng source của bản phát triển này; không trộn source của lượt train khác.
 
-## Chạy benchmark W00
-
-Lệnh benchmark QMIX đọc trực tiếp ZIP ở `--models`, mặc định là `checkpoints/w00_main/FOURARM400K_FROZEN_MODELS.zip`. Khi đánh giá một file `best.pt` riêng, dùng lệnh eval ở mục trước.
-
-Ví dụ dưới đây chạy QMIX-AR (mã `C-R`, seed huấn luyện 551) và Random trên cùng seed kiểm thử 930201. Mỗi lượt chạy 100 slot để kiểm tra.
+## Kiểm tra nhanh
 
 ```powershell
-python -m scripts.w00 benchmark drl --arm C-R --training-seed 551 --models checkpoints/w00_main/FOURARM400K_FROZEN_MODELS.zip --part 1 --seeds 930201 --slots 100 --run-id local_demo --output runs/local/benchmark-demo/qmix-ar
-python -m scripts.w00 benchmark baseline --label RANDOM --part 1 --seeds 930201 --slots 100 --run-id local_demo --output runs/local/benchmark-demo/random
+python -B -m scripts.verification.smoke_compact --output runs/smoke-01
 ```
 
-Bỏ `--slots` để chạy đủ 10.000 slot. Bỏ `--seeds` để chạy cả nhóm của `--part`. Nhóm 1 gồm 930201–930205, nhóm 2 gồm 930206–930210. Lệnh chạy đối chứng nhận `RANDOM` cho Random, `DYNAMIC_AR` cho Heuristic-AR và `HEURISTIC_HO` cho Heuristic-H. Cấu hình đánh giá nằm trong `configs/bs5_fourarm400k_heuristic_benchmark.json`.
+Dùng output chưa tồn tại. Lệnh chạy train diagnostic 96 bước, eval đúng checkpoint vừa tạo 40 slot, ba baseline mỗi loại 8 slot và xuất sáu hình từ CSV đi kèm. Log và `smoke_report.json` nằm dưới output. Diagnostic chỉ kiểm đường chạy, không thay model W00 trong so sánh khoa học.
 
-Hai lượt chạy thử ghi kết quả riêng trong `runs/local/benchmark-demo/`.
+## Benchmark đối chứng
 
-Eval và benchmark lưu thêm các gói `*_REVIEW.zip`, `*_RESUME.zip` và file `*_INDEX.json` cạnh thư mục kết quả. Để dừng có chủ đích, dùng `--stop-after-slots`. Khi tiếp tục, bỏ cờ này, giữ nguyên thư mục kết quả và các tham số của lượt chạy. Nếu chuyển sang máy khác bằng gói `*_RESUME.zip`, giải nén để khôi phục thư mục kết quả trước khi chạy lại lệnh.
-
-## Tổng hợp lại bảng W00 từ dữ liệu gốc
-
-Hai lệnh này đọc kết quả đã lưu và ghi bảng mới vào `runs/local/`, không train lại. Các script tổng hợp chưa tự bật adapter Windows; đặt `PYTHONPATH` như dưới đây để dùng adapter `fcntl` có sẵn:
+Ví dụ ngắn trên seed 930201:
 
 ```powershell
+python -m scripts.w00 benchmark baseline --label RANDOM --part 1 --seeds 930201 --slots 8 --run-id local-demo --output runs/baseline-random
+python -m scripts.w00 benchmark baseline --label DYNAMIC_AR --part 1 --seeds 930201 --slots 8 --run-id local-demo --output runs/baseline-ar
+python -m scripts.w00 benchmark baseline --label HEURISTIC_HO --part 1 --seeds 930201 --slots 8 --run-id local-demo --output runs/baseline-h
+```
+
+`DYNAMIC_AR` là Heuristic-AR, `HEURISTIC_HO` là Heuristic-H. Đổi `--slots 8` thành `--slots 10000` khi chạy đầy đủ. Partition 1 dùng seed 930201–930205, partition 2 dùng 930206–930210; bỏ `--seeds` để chạy cả partition, dùng output riêng.
+
+## Vẽ sáu hình Chương 5
+
+Bốn CSV W00 đi kèm ở `results/w00_main/`, đã kiểm SHA-256 với repo gốc. Các lệnh chỉ đọc CSV, không cần checkpoint hoặc raw:
+
+```powershell
+python -m scripts.plotting.chapter5.plot_learning --output runs/chapter5
+python -m scripts.plotting.chapter5.plot_demand_breakdown --output runs/chapter5
+python -m scripts.plotting.chapter5.plot_throughput_blocks --output runs/chapter5
+python -m scripts.plotting.chapter5.plot_ue_service --output runs/chapter5
+python -m scripts.plotting.chapter5.plot_operation --output runs/chapter5
+python -m scripts.plotting.chapter5.plot_throughput_cost --output runs/chapter5
+```
+
+Mỗi hình có PNG, PDF, CSV và JSON ghi nguồn. Chọn output mới hoặc thêm `--overwrite` để vẽ lại. Output train/eval mới không tự thay bốn CSV khóa luận. Không nhúng ảnh sinh ra trong README để tránh liên kết phụ thuộc vào một lượt chạy cục bộ.
+
+## Checkpoint W00 lịch sử
+
+Bố cục kho trên máy hiện tại, tính từ thư mục gốc repo này:
+
+| Nguồn | Đường dẫn |
+|---|---|
+| Source trước khi áp dụng bản gọn | `archive/before_compact_apply_2026-11-24/` |
+| Bản nộp | `../kltn2026-uav-qmix-restoration/` |
+| Source W00 nguyên vẹn | `../drive_upload/source_w00/` |
+| 12 model W00, protocol/status và manifest | `../drive_upload/checkpoints_w00/` |
+
+Checkpoint W00 lịch sử phải dùng `source_w00/` và metadata tương ứng. Không bỏ kiểm hash để nạp bằng source mới. Ví dụ từ thư mục phát triển:
+
+```powershell
+Push-Location ../drive_upload/source_w00
 $env:PYTHONPATH = "$PWD/scripts/compat/windows;$PWD"
-python -m scripts.analysis.report_final400k --input results/w00_main/raw --output runs/local/w00-raw-rebuilt
-python -m scripts.analysis.compare_fourarm400k_multiseed --input results/w00_main/training_runs --output runs/local/w00-training-rebuilt --freeze-models
+python run.py eval --checkpoint ../checkpoints_w00/models/C_R_S551/best.pt --test-seed 930201 --slots 10000 --output runs/eval-cr-s551
+python -m scripts.w00 benchmark drl --arm C-R --training-seed 551 --models ../checkpoints_w00 --part 1 --seeds 930201 --slots 10000 --run-id history-cr-s551 --output runs/benchmark-cr-s551
 Remove-Item Env:PYTHONPATH
+Pop-Location
 ```
 
-## Các thư mục chính
+Lệnh lịch sử ghi output riêng dưới `source_w00/runs/`. Giữ raw/evidence/checkpoint ở kho ngoài bản phát triển. Khi giải nén ZIP ở nơi khác, điều chỉnh các đường dẫn kho lịch sử tương đối trong mục này; train mới và vẽ sáu hình vẫn tự chạy bằng nội dung ZIP.
 
-| Đường dẫn | Nội dung |
-| --- | --- |
-| [run.py](run.py), [scripts/w00.py](scripts/w00.py) | Lệnh huấn luyện, đánh giá checkpoint và chạy benchmark trên Windows |
-| [src/envs/](src/envs/), [src/rl/](src/rl/) | Môi trường mô phỏng UAV và mã QMIX |
-| [scripts/](scripts/README.md), [configs/](configs/) | Script chạy thí nghiệm, vẽ hình, kiểm tra kết quả và các tệp cấu hình |
-| `checkpoints/w00_main/FOURARM400K_FROZEN_MODELS.zip` | 12 checkpoint của QMIX-A, QMIX-AR, QMIX-ARH và QMIX-H, mỗi cấu hình có ba seed huấn luyện |
-| `results/w00_main/training/` | Bảng tổng hợp đường học và kiểm định của 12 lượt huấn luyện W00 |
-| `results/w00_main/benchmark/` | CSV tổng hợp 150 lượt kiểm thử của bốn cấu hình QMIX và ba đối chứng |
-| `results/w00_main/training_runs/` | Dữ liệu gốc của 12 lượt huấn luyện W00: log, checkpoint, protocol/status |
-| `results/w00_main/raw/` | Kết quả kiểm thử gốc theo từng slot của 150 lượt W00 |
-| `checkpoints/w00_ablation/W00_CR_mlp_S551/` | QMIX-AR thay CNN bằng MLP: `best.pt`, protocol/status/log. Seed 552/553 ở thư mục cùng mẫu tên |
-| `checkpoints/w00_ablation/W00_CR_no_curriculum_S551/` | QMIX-AR bỏ huấn luyện tăng dần độ khó: `best.pt`, protocol/status/log. Seed 552/553 ở thư mục cùng mẫu tên |
-| `results/w00_ablation/` | Kết quả đánh giá hai biến thể với QMIX-AR đầy đủ: `evidence/summary.csv`, `evidence/paired_by_run.csv` và setup/audit |
-| `results/w00_ablation/checkpoint_verification.json`, `results/w00_ablation/evidence/raw/` | Receipt và sáu `*_EVAL.zip` mà verifier đọc trực tiếp |
-| `results/appendix_w05/`, `checkpoints/appendix_w05/` | Dữ liệu và model W05 |
-| `results/appendix_reward_sweep/`, `checkpoints/appendix_reward_sweep/` | Dữ liệu và model khảo sát trọng số phần thưởng W00–W08 |
-| `figures/w00_main/thesis_v12/` | Hình benchmark phục vụ của bản v12, vẽ bằng `scripts/plotting/plot_w00_7cfg.py` |
-| `docs/thesis/` | Bản LaTeX (9) và PDF (35) của khóa luận |
-| `archive/frozen_sources/w00_ablation/extracted/uav_thesis/` | Nguồn cố định cho train lại ablation qua `scripts.w00 train --variant mlp` hoặc `--variant no_curriculum` |
-| `runs/` | Kết quả các lượt chạy mới. Các ví dụ kiểm tra và vẽ lại trong README dùng `runs/local/` |
-
-Danh mục đường dẫn: [repository_paths.json](configs/repository_paths.json),
-[w00_assets.json](configs/w00_assets.json).
-
-## Thử nhanh với 96 bước huấn luyện và 40 slot
-
-Hai lệnh dưới đây huấn luyện 96 bước rồi nạp `best.pt` vừa tạo để đánh giá 40 slot. Dùng thư mục mới mỗi lần thử. Chế độ `--diagnostic` có thể chọn checkpoint ở bước 0 vì mục đích của lượt này là kiểm tra việc lưu và nạp mô hình.
+## Đóng gói và Git Windows
 
 ```powershell
-python run.py train qmix-a --seed 551 --steps 96 --diagnostic --output runs/local/readme-smoke/train
-python run.py eval --checkpoint runs/local/readme-smoke/train/best.pt --test-seed 930201 --slots 40 --output runs/local/readme-smoke/eval
+python -B -m scripts.packaging.export_source --with-w00-csv
 ```
 
-## Kiểm tra checkpoint và kết quả W00
+ZIP làm việc ở `archive/packages/uav_thesis_work_<ngày>.zip` (hậu tố số nếu trùng tên), có thư mục gốc `uav_thesis/`. Gói gồm source, config, test, README, `.gitattributes` và đúng bốn CSV; không có checkpoint, raw, evidence hoặc output kiểm thử. Receipt cạnh ZIP ghi CRC và SHA-256 từng file, cùng kết quả import từ bản giải nén. Bỏ `--with-w00-csv` nếu chỉ cần ZIP mã nguồn.
 
-Lệnh sau kiểm tra bảng tổng hợp của 150 lượt W00, nạp 12 checkpoint chính và đối chiếu sáu checkpoint QMIX-AR ablation với sáu gói đánh giá gốc.
+Sau khi giải nén, mở PowerShell tại thư mục chứa `run.py`, kích hoạt Conda và chạy lệnh smoke ở trên. Đã kiểm các lệnh diagnostic, eval, benchmark ngắn và sáu hình bằng bản giải nén; ví dụ 399.600 bước/10.000 slot dành cho lượt thí nghiệm đầy đủ.
 
-```powershell
-python -m scripts.verification.verify_w00_import --output runs/local/w00-check/verification.json
-```
-
-Để đối chiếu cả kết quả gốc theo từng slot, chạy thêm lệnh sau.
-
-```powershell
-python -m scripts.verification.check_final400k --input results/w00_main/benchmark --raw results/w00_main/raw --output runs/local/w00-check/raw.json
-```
-
-## Đóng gói mã nguồn
-
-```powershell
-python -B -m scripts.packaging.export_source
-```
-
-Lệnh tạo ZIP mã nguồn mới và receipt `.verification.json` trong `archive/packages/`, kiểm tra CRC/hash, đủ `src/envs/`, rồi import train/eval từ bản giải nén riêng.
-
-Trên máy khác, giải nén ZIP mã nguồn rồi chạy từ thư mục chứa `run.py`. ZIP không chứa checkpoint, kết quả, tài liệu hoặc nguồn ablation trong `archive/`; cần chép thêm các đầu vào tương ứng ở mục tra cứu để benchmark, vẽ hình hoặc train ablation.
+Giữ nguyên [.gitattributes](.gitattributes): `-text` ngăn Git chuyển LF/CRLF, kể cả khi `core.autocrlf=true`, để bảo toàn hash source/protocol/CSV. `.gitignore` chỉ cho phép đúng bốn CSV W00 trong results; các output và tài liệu cục bộ tiếp tục bị bỏ qua.
