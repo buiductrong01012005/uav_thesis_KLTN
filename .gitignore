@@ -4,7 +4,18 @@ __pycache__/
 *.pyc
 *.pyo
 .venv/
-results/
+# Keep only the four frozen W00 plot inputs; research outputs stay local.
+/results/*
+!/results/w00_main/
+/results/w00_main/*
+!/results/w00_main/training/
+!/results/w00_main/benchmark/
+/results/w00_main/training/*
+!/results/w00_main/training/learning_mean_sd.csv
+/results/w00_main/benchmark/*
+!/results/w00_main/benchmark/aggregate.csv
+!/results/w00_main/benchmark/temporal_1000slot.csv
+!/results/w00_main/benchmark/per_run.csv
 checkpoints/
 *.zip
 final_results_figures_tables
