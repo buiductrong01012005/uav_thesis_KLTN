@@ -1,10 +1,12 @@
 """Shared labels, audited CSV loading and explicit plotting receipts."""
+
 import argparse
 import hashlib
 import json
 from pathlib import Path
 
 import matplotlib
+
 matplotlib.use("Agg")
 import matplotlib.pyplot as plt
 from matplotlib.ticker import NullFormatter, StrMethodFormatter
@@ -24,10 +26,17 @@ def options(description, argv=None):
     parser = argparse.ArgumentParser(description=description)
     parser.add_argument("--input", type=Path, default=ROOT / "results/w00_main/benchmark")
     parser.add_argument("--training", type=Path, default=ROOT / "results/w00_main/training")
-    parser.add_argument("--output", type=Path, default=ROOT / "figures/w00_main/chapter5")
+    parser.add_argument("--output", type=Path, default=ROOT / "results/figures")
     parser.add_argument("--overwrite", action="store_true", help="Replace only these plot products")
-    plt.rcParams.update({"font.family": "DejaVu Sans", "font.size": 8.5,
-                         "axes.spines.top": False, "axes.spines.right": False, "pdf.fonttype": 42})
+    plt.rcParams.update(
+        {
+            "font.family": "DejaVu Sans",
+            "font.size": 8.5,
+            "axes.spines.top": False,
+            "axes.spines.right": False,
+            "pdf.fonttype": 42,
+        }
+    )
     return parser.parse_args(argv)
 
 
@@ -54,8 +63,11 @@ def run_values(folder, metrics):
             actual = set(zip(rows.training_seed, rows.seed))
             if actual != expected or len(rows) != 30:
                 raise ValueError("Incomplete training/test design: " + arm)
-        elif (len(rows) != 10 or rows.training_seed.notna().any()
-              or set(rows.seed) != set(range(930201, 930211))):
+        elif (
+            len(rows) != 10
+            or rows.training_seed.notna().any()
+            or set(rows.seed) != set(range(930201, 930211))
+        ):
             raise ValueError("Baseline must have exactly ten unreplicated runs: " + arm)
     if set(frame.configuration) != set(ARMS):
         raise ValueError("Unexpected W00 configuration")
@@ -64,7 +76,11 @@ def run_values(folder, metrics):
 
 def per_test_seed(folder, metrics):
     # Three training replicates per scenario; a baseline stays one run per scenario.
-    return run_values(folder, metrics).groupby(["configuration", "seed"], as_index=False)[metrics].mean()
+    return (
+        run_values(folder, metrics)
+        .groupby(["configuration", "seed"], as_index=False)[metrics]
+        .mean()
+    )
 
 
 def number(value, digits=2):
@@ -78,22 +94,38 @@ def log_axis(ax, ticks):
     ax.xaxis.set_minor_formatter(NullFormatter())
 
 
-def seed_panel(ax, values, metric, title, *, scale=1, log=False, xmax=90, ticks=None,
-               label_at_point=False):
+def seed_panel(
+    ax, values, metric, title, *, scale=1, log=False, xmax=90, ticks=None, label_at_point=False
+):
     for y, arm, color in zip(Y, ARMS, COLORS):
         x = values.loc[values.configuration == arm, metric].to_numpy() * scale
-        ax.hlines(y, x.min(), x.max(), color=color, lw=1.3, alpha=.8)
-        ax.scatter(x, np.full(len(x), y), s=7, color=color, alpha=.45, lw=0, zorder=2)
+        ax.hlines(y, x.min(), x.max(), color=color, lw=1.3, alpha=0.8)
+        ax.scatter(x, np.full(len(x), y), s=7, color=color, alpha=0.45, lw=0, zorder=2)
         ax.scatter([x.mean()], [y], s=30, color=color, zorder=3)
         if label_at_point:
-            near_edge = x.mean() > xmax * .8
-            ax.annotate(number(x.mean()), xy=(x.mean(), y),
-                        xytext=(-6 if near_edge else 6, 0), textcoords="offset points",
-                        ha="right" if near_edge else "left", va="center", color=color,
-                        fontsize=8, fontweight="bold")
+            near_edge = x.mean() > xmax * 0.8
+            ax.annotate(
+                number(x.mean()),
+                xy=(x.mean(), y),
+                xytext=(-6 if near_edge else 6, 0),
+                textcoords="offset points",
+                ha="right" if near_edge else "left",
+                va="center",
+                color=color,
+                fontsize=8,
+                fontweight="bold",
+            )
         else:
-            ax.annotate(number(x.mean()), xy=(1., y), xycoords=("axes fraction", "data"),
-                        ha="right", va="center", color=color, fontsize=8, fontweight="bold")
+            ax.annotate(
+                number(x.mean()),
+                xy=(1.0, y),
+                xycoords=("axes fraction", "data"),
+                ha="right",
+                va="center",
+                color=color,
+                fontsize=8,
+                fontweight="bold",
+            )
     if log:
         log_axis(ax, [10, 30, 100, 300])
         ax.set_xlim(9, 2500)
@@ -101,9 +133,9 @@ def seed_panel(ax, values, metric, title, *, scale=1, log=False, xmax=90, ticks=
         ax.set_xlim(0, xmax)
         if ticks is not None:
             ax.set_xticks(ticks)
-    ax.axhline(3.65, color="#c9ced6", lw=.8)
+    ax.axhline(3.65, color="#c9ced6", lw=0.8)
     ax.set_xlabel(title)
-    ax.grid(axis="x", alpha=.25)
+    ax.grid(axis="x", alpha=0.25)
 
 
 def save(fig, args, relative, values, method, inputs, script):
@@ -116,9 +148,20 @@ def save(fig, args, relative, values, method, inputs, script):
     fig.savefig(products[1], dpi=200)
     plt.close(fig)
     values.to_csv(products[2], index=False)
-    receipt = dict(method=method, inputs={str(p): hashlib.sha256(p.read_bytes()).hexdigest() for p in inputs},
-                   labels=dict(zip(ARMS, NAMES)), script=Path(script).relative_to(ROOT).as_posix(),
-                   script_sha256=hashlib.sha256(Path(script).read_bytes()).hexdigest(),
-                   common_sha256=hashlib.sha256(Path(__file__).read_bytes()).hexdigest())
-    products[3].write_text(json.dumps(receipt, ensure_ascii=False, indent=2) + "\n", encoding="utf-8")
+    receipt = dict(
+        method=method,
+        inputs={
+            (p.relative_to(ROOT).as_posix() if p.is_relative_to(ROOT) else str(p)): hashlib.sha256(
+                p.read_bytes()
+            ).hexdigest()
+            for p in inputs
+        },
+        labels=dict(zip(ARMS, NAMES)),
+        script=Path(script).relative_to(ROOT).as_posix(),
+        script_sha256=hashlib.sha256(Path(script).read_bytes()).hexdigest(),
+        common_sha256=hashlib.sha256(Path(__file__).read_bytes()).hexdigest(),
+    )
+    products[3].write_text(
+        json.dumps(receipt, ensure_ascii=False, indent=2) + "\n", encoding="utf-8"
+    )
     print(products[0].relative_to(ROOT) if products[0].is_relative_to(ROOT) else products[0])

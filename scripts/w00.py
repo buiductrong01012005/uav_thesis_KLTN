@@ -1,10 +1,10 @@
 """Windows entry point for W00; scientific logic stays in the existing runners."""
+
 from pathlib import Path
 import argparse
 import hashlib
 import os
 import signal
-import subprocess
 import sys
 
 ROOT = Path(__file__).resolve().parents[1]
@@ -22,8 +22,12 @@ def enable_windows():
 def local_output(path):
     path = Path(path).resolve()
     runs = (ROOT / "runs").resolve()
-    if path == runs or not path.is_relative_to(runs):
-        raise ValueError("New W00 runs must use an output directory under runs/")
+    if path == ROOT or (
+        path.is_relative_to(ROOT) and (path == runs or not path.is_relative_to(runs))
+    ):
+        raise ValueError(
+            "Inside the repository, new W00 runs must use a directory under runs/; external output is allowed"
+        )
     return path
 
 
@@ -32,29 +36,41 @@ def benchmark(argv):
     from scripts.evaluation import run_fourarm400k_drl_benchmark as drl
     from scripts.evaluation.fourarm400k_return_summary import extend_summary
 
-    parser = argparse.ArgumentParser(description="W00 native benchmark, optional separate custom horizon")
+    parser = argparse.ArgumentParser(
+        description="W00 native benchmark, optional separate custom horizon"
+    )
+    parser.add_argument("--config", type=Path, default=ROOT / "configs/evaluation.json")
     parser.add_argument("mode", choices=("drl", "baseline"))
     parser.add_argument("--arm", choices=drl.ARMS)
-    parser.add_argument("--training-seed", type=int, choices=drl.SEEDS, default=551)
-    parser.add_argument("--models", type=Path, default=ROOT / "checkpoints/w00_main/FOURARM400K_FROZEN_MODELS.zip")
+    parser.add_argument("--training-seed", type=int, choices=drl.SEEDS, default=drl.SEEDS[0])
+    parser.add_argument(
+        "--models", type=Path, default=ROOT / "checkpoints/w00_main/FOURARM400K_FROZEN_MODELS.zip"
+    )
     parser.add_argument("--label", choices=tuple(core.LABELS))
     parser.add_argument("--part", type=int, choices=(1, 2), default=1)
     parser.add_argument("--seeds", type=int, nargs="+")
-    parser.add_argument("--slots", type=int, help="Complete custom horizon per seed; separate from frozen 10000")
+    parser.add_argument(
+        "--slots", type=int, help="Complete custom horizon per seed; separate from frozen 10000"
+    )
     parser.add_argument("--run-id", required=True)
     parser.add_argument("--output", type=local_output, required=True)
     parser.add_argument("--diagnostic", action="store_true")
     parser.add_argument("--check-only", action="store_true")
     parser.add_argument("--stop-after-slots", type=int, default=0)
     parser.add_argument("--max-seconds", type=float, default=36000)
-    parser.add_argument("--save-every", type=int, default=500)
-    parser.add_argument("--log-every", type=int, default=100)
+    parser.add_argument("--save-every", type=int)
+    parser.add_argument("--log-every", type=int)
     args = parser.parse_args(argv)
+    from src.configuration import read_json
+
+    cfg = read_json(args.config)
+    args.save_every = args.save_every if args.save_every is not None else cfg["save_every_slots"]
+    args.log_every = args.log_every if args.log_every is not None else cfg["log_every_slots"]
     if args.slots is not None and args.slots < 1:
         parser.error("--slots must be positive; no rounding")
     if args.save_every < 1 or args.log_every < 1 or args.stop_after_slots < 0:
         parser.error("Positive save/log intervals and nonnegative stop-after-slots required")
-    if not args.run_id.strip() or any(c in args.run_id for c in '/\\'):
+    if not args.run_id.strip() or any(c in args.run_id for c in "/\\"):
         parser.error("--run-id must be a nonempty name")
     if args.mode == "drl" and args.arm is None:
         parser.error("drl requires --arm")
@@ -65,19 +81,30 @@ def benchmark(argv):
     adapter_hash = hashlib.sha256(Path(__file__).read_bytes()).hexdigest()
 
     def protocol(label, part, diagnostic=False, seeds=None):
-        p = original(label, part, diagnostic, seeds)
+        p = original(label, part, diagnostic, seeds, config_path=args.config)
         if args.slots is not None:
             p["horizon"] = args.slots
             p["config"]["horizon"] = args.slots
             p["environment_contract"]["horizon"] = args.slots
-        p["native_adapter"] = dict(version=VERSION, sha256=adapter_hash, run_id=args.run_id,
-                                   custom_horizon=args.slots is not None,
-                                   trace_comparison="same horizon and scenario seed only")
-        # Include native provenance in the environment fingerprint, including for DRL.
+        p["native_adapter"] = dict(
+            version=VERSION,
+            sha256=adapter_hash,
+            run_id=args.run_id,
+            custom_horizon=args.slots is not None,
+            trace_comparison="same horizon and scenario seed only",
+        )
         p["environment_contract"]["native_adapter"] = p["native_adapter"]
         p["environment_fingerprint"] = core.digest(p["environment_contract"])
-        p["comparison_fingerprint"] = core.digest({k: v for k, v in p.items()
-                                                   if k != "comparison_fingerprint"})
+        p["source_sha256"]["scripts/w00.py"] = adapter_hash
+        keys = [
+            "version",
+            "config",
+            "training_protocol",
+            "source_sha256",
+            "environment_contract",
+            "environment_fingerprint",
+        ]
+        p["comparison_fingerprint"] = core.digest({k: p[k] for k in keys})
         return p
 
     core.make_protocol = protocol
@@ -91,27 +118,13 @@ def benchmark(argv):
 
 
 def train(argv):
-    parser = argparse.ArgumentParser(add_help=False)
-    parser.add_argument("--variant", choices=("main", "mlp", "no_curriculum"), default="main")
-    args, remaining = parser.parse_known_args(argv)
-    if args.variant == "main":
-        from scripts.training import run_bs5_fourarm400k as runner
-        options = runner.parser().parse_args(remaining)
-        options.output = local_output(options.output)
-        signal.signal(signal.SIGTERM, runner.stop_handler)
-        signal.signal(signal.SIGINT, runner.stop_handler)
-        return runner.run(options)
-    # A fresh interpreter keeps ablation src/ imports isolated from the main model.
-    source = ROOT / "archive/frozen_sources/w00_ablation/extracted/uav_thesis"
-    if not source.is_dir():
-        raise FileNotFoundError("Restore the separate W00 ablation snapshot first")
-    command = [sys.executable, "-B", str(ROOT / "scripts/compat/train_w00_snapshot.py"),
-               "--snapshot", str(source), "--variant", args.variant, *remaining]
-    subprocess.run(command, check=True, cwd=ROOT)
+    from scripts.train import main as run_train
+
+    return run_train(argv)
 
 
 def evaluate(argv):
-    from scripts.evaluation.eval_w00_checkpoint import main as run_eval
+    from scripts.evaluate import main as run_eval
 
     return run_eval(argv)
 

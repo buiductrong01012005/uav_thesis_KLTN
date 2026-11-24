@@ -15,18 +15,27 @@ ROOT = Path(__file__).resolve().parents[2]
 CACHES = {"__pycache__", ".pytest_cache", ".ruff_cache", ".mypy_cache"}
 EXCLUDED_DIRS = CACHES | {".git", ".codegraph", ".venv"}
 SOURCE_DIRS = ("src", "scripts", "tests", "configs")
-ROOT_FILES = ("run.py", "AGENTS.md", "README.md", ".gitignore", "pyproject.toml")
+ROOT_FILES = ("run.py", "AGENTS.md", "README.md", ".gitignore", ".gitattributes", "pyproject.toml")
+W00_CSV_FILES = (
+    "results/w00_main/training/learning_mean_sd.csv",
+    "results/w00_main/benchmark/aggregate.csv",
+    "results/w00_main/benchmark/temporal_1000slot.csv",
+    "results/w00_main/benchmark/per_run.csv",
+)
 REQUIRED = (
-    "run.py", "AGENTS.md", "requirements.txt", "scripts/w00.py",
+    "run.py", "AGENTS.md", "README.md", ".gitattributes", "requirements.txt", "scripts/w00.py",
+    "scripts/train.py", "scripts/evaluate.py", "scripts/source_integrity.py",
     "scripts/compat/windows/fcntl.py", "scripts/training/run_bs5_fourarm400k.py",
+    "scripts/training/checkpoint_io.py", "scripts/evaluation/actor.py",
     "scripts/evaluation/eval_w00_checkpoint.py",
     "scripts/evaluation/run_fourarm400k_drl_benchmark.py",
     "scripts/evaluation/run_fourarm400k_heuristics.py",
-    "configs/bs5_fourarm400k.json", "configs/bs5_fourarm400k_heuristic_benchmark.json",
-    "src/envs/__init__.py", "src/envs/bs5_curriculum_env.py",
-    "src/envs/bs5_fourarm400k.py", "src/envs/bs5_service_v2.py",
-    "src/envs/bs5_tcf_env.py", "src/envs/bs5_energy_swap.py",
-    "src/rl/bs5_fourarm400k_qmix.py", "src/rl/qmix.py",
+    "configs/environment.json", "configs/training.json", "configs/evaluation.json",
+    "src/configuration.py", "src/experiment.py", "src/envs/__init__.py",
+    "src/envs/environment.py", "src/envs/movement.py", "src/envs/energy.py",
+    "src/envs/observation.py", "src/envs/reward.py", "src/envs/config.py",
+    "src/envs/curriculum.py", "src/envs/radio/airtime.py",
+    "src/rl/fourarm_qmix.py", "src/rl/qmix.py",
 )
 
 
@@ -67,7 +76,7 @@ def source_tree(folder):
             yield path
 
 
-def collect_files(root):
+def collect_files(root, *, with_w00_csv=False):
     root = Path(root).resolve()
     files = [p for folder in SOURCE_DIRS for p in source_tree(root / folder)]
     files.extend(root / name for name in ROOT_FILES if (root / name).is_file())
@@ -76,6 +85,16 @@ def collect_files(root):
     missing = set(REQUIRED) - selected.keys()
     if missing:
         raise ValueError(f"Missing train/eval source files: {sorted(missing)}")
+    if with_w00_csv:
+        for name in W00_CSV_FILES:
+            path = root / name
+            if not path.is_file():
+                raise ValueError("Missing W00 CSV: " + name)
+            if not path.resolve().is_relative_to(root) or any(
+                is_link(parent) for parent in (path, *path.parents) if parent != root and parent.is_relative_to(root)
+            ):
+                raise ValueError("Linked W00 CSV path must be reviewed: " + name)
+            selected[name] = path
     return dict(sorted(selected.items()))
 
 
@@ -89,6 +108,9 @@ def verify_archive(archive, root, expected):
         names = z.namelist()
         if len(names) != len(set(names)) or z.testzip() is not None:
             raise ValueError("Corrupt ZIP or duplicate members")
+        csv_names = {name for name in expected if name.startswith("results/")}
+        if csv_names and csv_names != set(W00_CSV_FILES):
+            raise ValueError("Working ZIP requires exactly the four W00 CSV files")
         members = {"uav_thesis/" + name for name in expected}
         required = {"uav_thesis/" + name for name in set(REQUIRED) | env_files}
         if not required <= set(names):
@@ -118,8 +140,8 @@ for name, module in tuple(sys.modules.items()):
             path = pathlib.Path(filename).resolve()
             assert path.is_relative_to(root), (name, str(path))
             modules[name] = path.relative_to(root).as_posix()
-assert "src.envs.bs5_fourarm400k" in modules
-assert "src.rl.bs5_fourarm400k_qmix" in modules
+assert "src.envs.environment" in modules
+assert "src.rl.fourarm_qmix" in modules
 print(json.dumps(modules, indent=2))
 '''
 
@@ -141,9 +163,9 @@ def verify_imports(archive, work):
     return json.loads(result.stdout)
 
 
-def export_source(root, output, check_dir):
+def export_source(root, output, check_dir, *, with_w00_csv=False):
     root, output = Path(root).resolve(), Path(output).resolve()
-    selected = collect_files(root)
+    selected = collect_files(root, with_w00_csv=with_w00_csv)
     output.parent.mkdir(parents=True, exist_ok=True)
     # Exclusive mode preserves previous packages, even if an explicit name collides.
     hashes = {}
@@ -154,7 +176,9 @@ def export_source(root, output, check_dir):
             z.writestr("uav_thesis/" + name, data)
     receipt = verify_archive(output, root, hashes)
     modules = verify_imports(output, check_dir)
-    receipt.update(archive=str(output), sha256=sha(output.read_bytes()), files_sha256=hashes,
+    receipt.update(package_kind="working_with_w00_csv" if with_w00_csv else "source_only",
+                   w00_csv_sha256={name: hashes[name] for name in W00_CSV_FILES if name in hashes},
+                   archive=str(output), sha256=sha(output.read_bytes()), files_sha256=hashes,
                    extracted=str(Path(check_dir).resolve() / "uav_thesis"),
                    imported_modules=modules, interpreter=sys.executable)
     output.with_suffix(".verification.json").write_text(
@@ -162,12 +186,13 @@ def export_source(root, output, check_dir):
     return receipt
 
 
-def default_output():
+def default_output(*, with_w00_csv=False):
     day = datetime.now(timezone(timedelta(hours=7))).date().isoformat()
-    target = ROOT / f"archive/packages/uav_thesis_source_{day}.zip"
+    stem = "uav_thesis_work" if with_w00_csv else "uav_thesis_source"
+    target = ROOT / f"archive/packages/{stem}_{day}.zip"
     suffix = 2
     while target.exists():
-        target = ROOT / f"archive/packages/uav_thesis_source_{day}_{suffix}.zip"
+        target = ROOT / f"archive/packages/{stem}_{day}_{suffix}.zip"
         suffix += 1
     return target
 
@@ -176,12 +201,15 @@ def main(argv=None):
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument("--output", type=Path, help="New ZIP filename; an existing file is never overwritten")
     parser.add_argument("--check-dir", type=Path, help="Fresh extraction directory retained for review")
+    parser.add_argument("--with-w00-csv", action="store_true",
+                        help="Include exactly four W00 plot CSVs; exclude raw, models and outputs")
     args = parser.parse_args(argv)
     check_dir = args.check_dir or ROOT / "runs/local" / ("source_import_" + uuid.uuid4().hex)
     check_dir = check_dir.resolve()
     if not check_dir.is_relative_to(ROOT / "runs") or check_dir == ROOT / "runs":
         parser.error("--check-dir must be a fresh directory below runs/")
-    receipt = export_source(ROOT, args.output or default_output(), check_dir)
+    receipt = export_source(ROOT, args.output or default_output(with_w00_csv=args.with_w00_csv),
+                            check_dir, with_w00_csv=args.with_w00_csv)
     print(json.dumps({k: receipt[k] for k in ("archive", "sha256", "members", "envs_files", "crc", "member_hashes", "extracted")}, indent=2))
     print(f"Imported {len(receipt['imported_modules'])} local modules from the extracted ZIP")
 

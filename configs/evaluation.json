@@ -1,0 +1,41 @@
+{
+  "version": "fourarm400k_heuristic_benchmark_v1",
+  "test_seeds": [
+    930201,
+    930202,
+    930203,
+    930204,
+    930205,
+    930206,
+    930207,
+    930208,
+    930209,
+    930210
+  ],
+  "horizon": 10000,
+  "diagnostic_seeds": [
+    940201
+  ],
+  "diagnostic_horizon": 96,
+  "network_sample_every_slots": 100,
+  "save_every_slots": 500,
+  "log_every_slots": 100,
+  "labels": {
+    "RANDOM": "C-R",
+    "DYNAMIC_AR": "C-R",
+    "HEURISTIC_HO": "H-only"
+  },
+  "algorithm_contract": "Frozen RandomAR,DelayedDynamicRole,DelayedHybridOnly. Heuristic one-step search retains the old equal-weight throughput/coverage/fairness score; not energy-aware search. Real evaluation reward and physics match FourArm400k.",
+  "information_contract": "Heuristics receive only original148D prefix of173D actor observations; extra25D delayed history map is unused. Delayed common report130D plus each own current state; no live truth or future rollout.",
+  "trace_hash_contract": "H0=32 zero bytes; Ht=SHA256(Ht-1 || service-time UE positions float64 little endian C order)",
+  "scope": "Three frozen baselines on reserved test seeds while DRL trains; no controller retuning from test. Later evaluate frozen DRL best selected by validation on exactly this environment contract.",
+  "schema_version": 1,
+  "output": "runs/evaluation",
+  "replication": {
+    "version": "fourarm400k_multiseed_plan_v1",
+    "selection": "Per training seed: best.pt by mean total reward on the fixed validation seeds. No selection by test or by best training seed.",
+    "replication_scope": "Three optimizer/network/exploration/replay seeds on the same declared training scenario schedule. This does not establish robustness to other maps, hardware or hyperparameters.",
+    "presentation": "Four DRL configurations plus two heuristic labels. Retain individual trained models as replicates, not separate algorithms.",
+    "statistics": "Equal weighting of training seeds and scenario seeds. Crossed bootstrap resamples paired training-seed indices and paired scenario indices separately. Three training seeds yield exploratory uncertainty estimates. Never count heuristic copies as independent observations."
+  }
+}

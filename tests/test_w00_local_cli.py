@@ -11,6 +11,7 @@ w00.enable_windows()
 import run as cli  # noqa: E402 -- Windows adapter must precede runner imports
 from scripts.evaluation.eval_w00_checkpoint import load_checkpoint  # noqa: E402
 from scripts.training import run_bs5_fourarm400k as train  # noqa: E402
+from scripts.train import parser, prepare  # noqa: E402
 
 
 @pytest.mark.parametrize("alias,arm", list(cli.ARMS.items()))
@@ -26,10 +27,11 @@ def test_train_alias_forwards_real_budget(monkeypatch, alias, arm):
 
 @pytest.fixture
 def checkpoint(tmp_path):
-    options = train.parser().parse_args(["--arm", "C-N", "--output", str(tmp_path), "--diagnostic"])
+    options = prepare(parser().parse_args(["--arm", "C-N", "--output", "runs/test-fixture", "--diagnostic"]))
     p = train.load_protocol(options)
-    learner = train.make_learner(p["arm"], lr=p["lr"], gamma=p["gamma"], device="cpu")
+    learner = train.make_learner(p["arm"], lr=p["lr"], gamma=p["gamma"], device="cpu", architecture=p["architecture"])
     (tmp_path / "protocol.json").write_text(json.dumps(p), encoding="utf-8")
+    (tmp_path / "resolved_config.json").write_text(json.dumps(p["resolved_config"]), encoding="utf-8")
     path = tmp_path / "best.pt"
     torch.save(train.checkpoint_payload(learner, p, 0, "reward_total", 0.25), path)
     return path, p
@@ -62,6 +64,23 @@ def test_rejects_other_validation_selection(checkpoint):
     payload["selection_metric"] = "throughput_mbps"
     torch.save(payload, path)
     with pytest.raises(ValueError, match="reward_total"):
+        load_checkpoint(path)
+
+
+def test_rejects_changed_locked_source(checkpoint):
+    path, protocol = checkpoint
+    protocol["source_sha256"]["src/envs/environment.py"] = "0" * 64
+    path.with_name("protocol.json").write_text(json.dumps(protocol), encoding="utf-8")
+    with pytest.raises(ValueError, match="Locked source changed"):
+        load_checkpoint(path)
+
+
+def test_rejects_changed_saved_environment(checkpoint):
+    path, protocol = checkpoint
+    config = protocol["resolved_config"]
+    config["environment"]["energy"]["energy_weight"] += 0.01
+    path.with_name("resolved_config.json").write_text(json.dumps(config), encoding="utf-8")
+    with pytest.raises(ValueError, match="Saved effective configuration differs"):
         load_checkpoint(path)
 
 

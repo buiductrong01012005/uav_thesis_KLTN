@@ -1,0 +1,75 @@
+{
+  "total_steps": 399600,
+  "early_horizon": 150,
+  "evaluation_every": 6000,
+  "validation_seeds": [
+    720001,
+    720002
+  ],
+  "train_seed_base": 710001,
+  "lr": 0.0003,
+  "lr_end": 3e-05,
+  "lr_schedule": "linear",
+  "gamma": 0.99,
+  "batch_size": 64,
+  "replay_capacity": 30000,
+  "warmup": 1000,
+  "update_every": 4,
+  "target_every": 1000,
+  "epsilon_decay_steps": 18000,
+  "epsilon_end": 0.05,
+  "battery_horizon": 300,
+  "schema_version": 1,
+  "environment": "environment.json",
+  "evaluation": "evaluation.json",
+  "arm": "C-N",
+  "training_seeds": [
+    551,
+    552,
+    553
+  ],
+  "stage_ends": [
+    3000,
+    6000,
+    12000
+  ],
+  "device": "cpu",
+  "diagnostic": false,
+  "output": "runs/train",
+  "residual_battery_range": [
+    24,
+    36
+  ],
+  "scenario_cycle": 40,
+  "architecture": {
+    "name": "fourarm_cnn_qmix_v1",
+    "conv_channels": 32,
+    "hidden_dim": 128
+  },
+  "diagnostic_profile": {
+    "environment": {
+      "simulation": {
+        "horizon": 24
+      }
+    },
+    "training": {
+      "total_steps": 96,
+      "stage_ends": [
+        12,
+        24,
+        48
+      ],
+      "early_horizon": 6,
+      "evaluation_every": 48,
+      "validation_seeds": [
+        640001
+      ],
+      "train_seed_base": 630001,
+      "batch_size": 8,
+      "replay_capacity": 128,
+      "warmup": 8,
+      "target_every": 24,
+      "epsilon_decay_steps": 72
+    }
+  }
+}

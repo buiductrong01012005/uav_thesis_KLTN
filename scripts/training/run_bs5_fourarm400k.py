@@ -1,16 +1,13 @@
 """Four fresh CPU CNN/QMIX arms at399600steps,using matched instantaneous fairness and physical energy."""
 
 from __future__ import annotations
-import argparse
 from copy import deepcopy
-from dataclasses import asdict
 import csv
 import hashlib
 import json
 import os
 from pathlib import Path
 import random
-import signal
 import sys
 import time
 
@@ -23,23 +20,31 @@ import numpy as np
 import scipy
 import torch
 from filelock import FileLock
-from src.envs.bs5_curriculum_env import condition_for, task_signature
-from src.envs.bs5_service_v2 import FULL_CONDITION, ServiceV2Config
-from src.envs.bs5_tcf_env import TCFWeights, jain, rate_metrics
-from src.envs.bs5_fourarm400k import (BS5FourArm400kEnv as BS5HybridTrainEnv, CollisionConfig, FairConfig, OBS_DIM, STATE_DIM,
-    EnergyConfig, VERSION as ENV_VERSION, REWARD_VERSION as VERSION, linear_learning_rate)
+from src.envs.curriculum import condition_for, task_signature
+from src.envs.reward import TCFWeights, jain
+from src.envs.environment import (
+    FairConfig,
+    OBS_DIM,
+    STATE_DIM,
+    VERSION as ENV_VERSION,
+    REWARD_VERSION as VERSION,
+    linear_learning_rate,
+)
 from src.diagnostics.bs5_episode_service_metrics import episode_service_metrics
-from src.rl.bs5_fourarm400k_qmix import make_learner
-from src.diagnostics.bs5_fourarm400k_metrics import observe_step, validation_metrics, training_metrics
+from src.rl.fourarm_qmix import make_learner
+from src.diagnostics.bs5_fourarm400k_metrics import (
+    observe_step,
+    validation_metrics,
+    training_metrics,
+)
 from src.rl.qmix import ReplayBuffer, Transition
-from scripts.training.run_bs5_service_v2_pilot import (
+from scripts.training.checkpoint_io import (
     atomic_json,
     atomic_torch,
     digest,
     model_payload,
 )
 
-CONFIG = ROOT / "configs/bs5_fourarm400k.json"
 STOP = False
 PRIMARY_METRICS = [
     "throughput_mbps",
@@ -78,8 +83,10 @@ def sha(path):
 def source_lock():
     files = list((ROOT / "src").rglob("*.py")) + [
         Path(__file__),
-        CONFIG,
-        ROOT / "scripts/training/run_bs5_service_v2_pilot.py",
+        ROOT / "scripts/train.py",
+        ROOT / "scripts/source_integrity.py",
+        ROOT / "scripts/evaluation/actor.py",
+        ROOT / "scripts/training/checkpoint_io.py",
         ROOT / "scripts/verification/export_bs5_fourarm400k.py",
         ROOT / "scripts/analysis/plot_bs5_fourarm400k.py",
     ]
@@ -93,32 +100,27 @@ def stop_handler(*_):
 
 
 def load_protocol(args):
-    if args.device != "cpu" or args.fair_mode != "instant" or args.no_flight_energy:
-        raise ValueError("Canonical four-arm400k requiresCPU,instant fairness and full physical flight energy")
-    if args.energy_weight != .1 or args.collision_weight != .2:
-        raise ValueError("Matched four-arm penalties must be energy0.1 and blocked0.2")
-    p = json.loads(CONFIG.read_text())
-    presets = p.pop("presets")
-    if args.preset not in presets:
-        raise ValueError("Unknown preset: " + args.preset)
-    weights = presets[args.preset]
-    if args.weights is not None:
-        weights = dict(zip(["throughput", "coverage", "fairness"], args.weights))
-    TCFWeights(**weights)
-    if weights != {"throughput":.4,"coverage":0.,"fairness":.6}:
-        raise ValueError("Use the frozen0.4/0.6 reward in all four arms")
+    from src.experiment import environment_protocol
+    from src.envs.config import ARM_ACTIONS
+
+    config = deepcopy(args.resolved_config)
+    t = config["training"]
+    env = config["environment"]
+    p = dict(t, **environment_protocol(env))
     p.update(
-        arm=args.arm,
-        preset=args.preset,
-        reward_weights=weights,
-        coverage_floor_mbps=args.coverage_floor,
-        diagnostic=args.diagnostic,
-        device=args.device,
-        total_steps=args.total_steps,
-        reward_version=VERSION,
-        source_sha256=source_lock(),
+        version=ENV_VERSION,
         training_env_version=ENV_VERSION,
-        policy_actions=5 if args.arm == "H-only" else (15 if args.arm == "C-H" else 10),
+        reward_version=VERSION,
+        preset="service_fair",
+        obs_dim=OBS_DIM,
+        state_dim=STATE_DIM,
+        policy_actions=ARM_ACTIONS[t["arm"]],
+        full_horizon=env["simulation"]["horizon"],
+        reserved_test_seeds=config["evaluation"]["test_seeds"],
+        resolved_config=config,
+        resolved_config_sha256=digest(config),
+        architecture=deepcopy(t["architecture"]),
+        source_sha256=source_lock(),
         torch_version=str(torch.__version__),
         runtime=dict(
             python=sys.version.split()[0],
@@ -127,72 +129,32 @@ def load_protocol(args):
             threads=1,
             cuda=torch.version.cuda,
             cudnn=torch.backends.cudnn.version(),
-            gpu_name=torch.cuda.get_device_name(0)
-            if args.device == "cuda" and torch.cuda.is_available()
-            else None,
-            gpu_capability=list(torch.cuda.get_device_capability(0))
-            if args.device == "cuda" and torch.cuda.is_available()
-            else None,
+            torch_build_sha256=hashlib.sha256(torch.__config__.show().encode()).hexdigest(),
         ),
     )
-    p["energy_config"] = dict(energy_weight=args.energy_weight, include_flight_energy=not args.no_flight_energy)
-    p["energy_config"] = asdict(EnergyConfig(**p["energy_config"]))
-    p["collision_config"] = asdict(CollisionConfig(args.collision_weight))
-    p["fair_config"] = asdict(FairConfig(args.fair_mode, args.ema_rho, weights["throughput"], weights["fairness"]))
-    if weights["coverage"] != 0:
-        raise ValueError("Coverage is evaluation-only in this reward")
-    p["obs_dim"], p["state_dim"] = OBS_DIM, STATE_DIM
-    p["runtime"]["torch_build_sha256"] = hashlib.sha256(torch.__config__.show().encode()).hexdigest()
-    cpuinfo = Path("/proc/cpuinfo")
-    p["runtime"]["cpu_model"] = next((line.split(":",1)[1].strip() for line in cpuinfo.read_text().splitlines() if line.startswith("model name")), "unknown") if cpuinfo.exists() else "unknown"
-    p["training_seed"] = args.training_seed
-    p["lr_schedule"] = args.lr_schedule
-    p["stage_ends"][-1] = p["total_steps"]
-    p["evaluation_steps"] = [0, 12000, 18000] + list(
-        range(24000, p["total_steps"] + 1, p["evaluation_every"])
-    )
-    if args.diagnostic:
-        p.update(
-            total_steps=96,
-            stage_ends=[12, 24, 48, 96],
-            early_horizon=6,
-            full_horizon=24,
-            evaluation_steps=[0, 48, 96],
-            validation_seeds=[640001],
-            train_seed_base=630001,
-            batch_size=8,
-            replay_capacity=128,
-            warmup=8,
-            target_every=24,
-            epsilon_decay_steps=72,
-        )
-    if not args.diagnostic and (
-        p["total_steps"] < 24000 or (p["total_steps"] - 12000) % p["full_horizon"]
-    ):
-        raise ValueError("Budget must be >=24k and contain whole full-task episodes after 12k")
-    p["evaluation_steps"] = sorted(set(p["evaluation_steps"] + [p["total_steps"]]))
-    rate_metrics([0.0], coverage_floor_mbps=p["coverage_floor_mbps"], weights=TCFWeights(**weights))
-    if args.pause_at_step < 0 or args.pause_at_step > p["total_steps"]:
-        raise ValueError("Pause point must be between0 and target budget")
-    common = {k:v for k,v in p.items() if k not in {"arm","policy_actions","runtime","torch_version","comparison_fingerprint"}}
+    if p["device"] != "cpu":
+        raise ValueError("This reproducible training runner uses CPU")
+    TCFWeights(**p["reward_weights"])
+    FairConfig(**p["fair_config"])
+    common = {
+        k: v
+        for k, v in p.items()
+        if k not in {"arm", "policy_actions", "runtime", "torch_version", "comparison_fingerprint"}
+    }
     p["comparison_fingerprint"] = digest(common)
     return p
 
 
-def make_env(p, *, condition=None, horizon=None, residual_battery=30.0):
-    return BS5HybridTrainEnv(
-        condition or FULL_CONDITION,
-        arm=p["arm"],
-        service_config=ServiceV2Config(**p["service"]),
-        reward_weights=TCFWeights(**p["reward_weights"]),
-        coverage_floor_mbps=p["coverage_floor_mbps"],
-        horizon=horizon or p["full_horizon"],
-        residual_battery=residual_battery,
-        energy_config=EnergyConfig(**p["energy_config"]),
-        collision_config=CollisionConfig(**p["collision_config"]),
-        fair_config=FairConfig(**p["fair_config"]),
-    )
+def make_env(p, *, condition=None, horizon=None, residual_battery=None):
+    from src.experiment import make_environment
 
+    return make_environment(
+        p["resolved_config"]["environment"],
+        arm=p["arm"],
+        condition=condition,
+        horizon=horizon,
+        residual_battery=residual_battery,
+    )
 
 
 def write_csv(path, rows):
@@ -338,22 +300,50 @@ def evaluate(learner, p, step, output):
                 stream, **{k: np.asarray(v) for k, v in arrays.items()}, ue_mean_rates=average
             )
         path.with_suffix(".tmp").replace(path)
-        row.update(energy_consumed_wh=sum(x["consumed_wh"] for x in samples),
+        row.update(
+            energy_consumed_wh=sum(x["consumed_wh"] for x in samples),
             swap_events=sum(x["swaps_completed"] for x in samples),
-            energy_shortfall_total_j=sum(x["energy_shortfall_j"] for x in samples))
-        row["mbit_per_joule"] = delivered_gbit*1000/(row["energy_consumed_wh"]*3600) if row["energy_consumed_wh"] > 0 else None
-        row["joules_per_mbit"] = row["energy_consumed_wh"]*3600/(delivered_gbit*1000) if delivered_gbit > 0 else None
-        row.update({k.replace("_j", "_wh"):sum(x[k] for x in samples)/3600 for k in ["flight_j","circuit_j","access_pa_j","backhaul_pa_j"]})
+            energy_shortfall_total_j=sum(x["energy_shortfall_j"] for x in samples),
+        )
+        row["mbit_per_joule"] = (
+            delivered_gbit * 1000 / (row["energy_consumed_wh"] * 3600)
+            if row["energy_consumed_wh"] > 0
+            else None
+        )
+        row["joules_per_mbit"] = (
+            row["energy_consumed_wh"] * 3600 / (delivered_gbit * 1000)
+            if delivered_gbit > 0
+            else None
+        )
+        row.update(
+            {
+                k.replace("_j", "_wh"): sum(x[k] for x in samples) / 3600
+                for k in ["flight_j", "circuit_j", "access_pa_j", "backhaul_pa_j"]
+            }
+        )
         atomic_json(destination / f"step{step}_seed{seed}_energy_events.json", env.energy_events)
         with (destination / f"step{step}_seed{seed}_energy.npz").open("wb") as stream:
-            np.savez_compressed(stream, **{k:np.asarray([x[k] for x in energy_audits]) for k in energy_audits[0]})
-        row.update(active_blocked_total=sum(x["active_blocked_uavs"] for x in samples),
+            np.savez_compressed(
+                stream, **{k: np.asarray([x[k] for x in energy_audits]) for k in energy_audits[0]}
+            )
+        row.update(
+            active_blocked_total=sum(x["active_blocked_uavs"] for x in samples),
             returning_blocked_total=sum(x["returning_blocked_uavs"] for x in samples),
-            policy_move_requests_total=sum(x["policy_move_requests"] for x in samples))
-        row["blocked_per_policy_move"] = row["active_blocked_total"]/row["policy_move_requests_total"] if row["policy_move_requests_total"] > 0 else None
-        atomic_json(destination / f"step{step}_seed{seed}_collision_events.json",env.collision_events)
+            policy_move_requests_total=sum(x["policy_move_requests"] for x in samples),
+        )
+        row["blocked_per_policy_move"] = (
+            row["active_blocked_total"] / row["policy_move_requests_total"]
+            if row["policy_move_requests_total"] > 0
+            else None
+        )
+        atomic_json(
+            destination / f"step{step}_seed{seed}_collision_events.json", env.collision_events
+        )
         with (destination / f"step{step}_seed{seed}_collision.npz").open("wb") as stream:
-            np.savez_compressed(stream, **{k:np.asarray([x[k] for x in collision_audits]) for k in collision_audits[0]})
+            np.savez_compressed(
+                stream,
+                **{k: np.asarray([x[k] for x in collision_audits]) for k in collision_audits[0]},
+            )
         row.update(validation_metrics(rates, samples, energy_audits, env, collision_audits))
         rows.append(row)
     return rows
@@ -375,6 +365,8 @@ def checkpoint_payload(learner, p, step, metric, score):
         arm=p["arm"],
         preset=p["preset"],
         fair_config=p["fair_config"],
+        resolved_config_sha256=p["resolved_config_sha256"],
+        architecture=p["architecture"],
     )
 
 
@@ -387,21 +379,23 @@ def record_selection(output, learner, p, saved, rows):
             # overwrite the selected model referenced by the committed resume.
             stable = Path("selected") / f"{Path(filename).stem}_step{saved['step']}.pt"
             (output / "selected").mkdir(exist_ok=True)
-            atomic_torch(output / stable,
-                checkpoint_payload(learner, p, saved["step"], metric, score))
-            saved["best_by_metric"][metric] = dict(score=score,step=saved["step"],
-                file=str(stable),public_file=filename)
+            atomic_torch(
+                output / stable, checkpoint_payload(learner, p, saved["step"], metric, score)
+            )
+            saved["best_by_metric"][metric] = dict(
+                score=score, step=saved["step"], file=str(stable), public_file=filename
+            )
 
 
 def restore_selected_aliases(output, saved):
     # Public best*.pt files are recoverable aliases, never the source of truth.
     import shutil
+
     for record in saved["best_by_metric"].values():
         public = output / record["public_file"]
         temp = public.with_suffix(".pt.tmp")
         shutil.copyfile(output / record["file"], temp)
         temp.replace(public)
-
 
 
 def save_boundary(output, learner, replay, rng, saved):
@@ -417,7 +411,7 @@ def save_boundary(output, learner, replay, rng, saved):
         ),
     )
     atomic_torch(output / "resume.pt", saved)
-    restore_selected_aliases(output,saved)
+    restore_selected_aliases(output, saved)
     atomic_json(
         output / "status.json",
         dict(
@@ -436,7 +430,8 @@ def save_boundary(output, learner, replay, rng, saved):
             preset=saved["protocol"]["preset"],
             policy_actions=saved["protocol"]["policy_actions"],
             fair_config=saved["protocol"]["fair_config"],
-            obs_dim=OBS_DIM, state_dim=STATE_DIM,
+            obs_dim=OBS_DIM,
+            state_dim=STATE_DIM,
             device=saved["protocol"]["device"],
             pause_at_step=saved.get("pause_at_step", 0),
             qos_tolerance_mbps=1e-6,
@@ -450,6 +445,7 @@ def save_boundary(output, learner, replay, rng, saved):
 
 def plot_curves(output, saved):
     from scripts.analysis.plot_bs5_fourarm400k import plot_run
+
     plot_run(output, saved)
 
 
@@ -471,11 +467,15 @@ def run_unlocked(args):
     random.seed(p["training_seed"])
     np.random.seed(p["training_seed"])
     torch.manual_seed(p["training_seed"])
-    learner = make_learner(p["arm"], lr=p["lr"], gamma=p["gamma"], device=p["device"])
+    learner = make_learner(
+        p["arm"], lr=p["lr"], gamma=p["gamma"], device=p["device"], architecture=p["architecture"]
+    )
     replay = ReplayBuffer(p["replay_capacity"], seed=p["training_seed"])
     rng = np.random.default_rng(p["training_seed"])
     if args.resume:
         saved = torch.load(output / "resume.pt", map_location=p["device"], weights_only=False)
+        if json.loads((output / "resolved_config.json").read_text()) != p["resolved_config"]:
+            raise ValueError("Saved effective configuration changed")
         if saved["protocol"] != p:
             raise RuntimeError(
                 "Multi-hop protocol/source/weights/threshold/runtime/actions changed; resume refused"
@@ -498,11 +498,12 @@ def run_unlocked(args):
                 or best["validation_score"] != record["score"]
             ):
                 raise RuntimeError("Best checkpoint lineage mismatch: " + metric)
-        restore_selected_aliases(output,saved)
+        restore_selected_aliases(output, saved)
         print(f"Resume {p['arm']} from {saved['step']} committed steps", flush=True)
     else:
         output.mkdir(parents=True)
         atomic_json(output / "protocol.json", p)
+        atomic_json(output / "resolved_config.json", p["resolved_config"])
         saved = dict(
             protocol=p,
             step=0,
@@ -560,15 +561,23 @@ def run_unlocked(args):
         if signature != saved["task_signature"]:
             replay = ReplayBuffer(p["replay_capacity"], seed=p["training_seed"] + saved["episode"])
             saved["task_signature"] = signature
-        horizon = p["full_horizon"] if condition["stage"] == "S4" else (p["battery_horizon"] if condition["substage"] == "S3d" and not p["diagnostic"] else p["early_horizon"])
+        horizon = (
+            p["full_horizon"]
+            if condition["stage"] == "S4"
+            else (
+                p["battery_horizon"]
+                if condition["substage"] == "S3d" and not p["diagnostic"]
+                else p["early_horizon"]
+            )
+        )
         if step + horizon > p["total_steps"]:
             raise RuntimeError("Episode would cross budget")
         episode = saved["episode"]
-        scenario = p["train_seed_base"] + episode % 40
+        scenario = p["train_seed_base"] + episode % p["scenario_cycle"]
         setup_seed = int(
             np.random.SeedSequence([p["training_seed"], episode, 0x5632]).generate_state(1)[0]
         )
-        residual = float(np.random.default_rng(setup_seed).uniform(24, 36))
+        residual = float(np.random.default_rng(setup_seed).uniform(*p["residual_battery_range"]))
         env = make_env(p, condition=condition, horizon=horizon, residual_battery=residual)
         current = env.reset(seed=scenario, assignment_seed=setup_seed)
         samples, losses = [], []
@@ -598,7 +607,11 @@ def run_unlocked(args):
                 )
             )
             global_step = collection_step + 1
-            lr = linear_learning_rate(global_step, p["total_steps"], p["lr"], p["lr_end"]) if p["lr_schedule"] == "linear" else p["lr"]
+            lr = (
+                linear_learning_rate(global_step, p["total_steps"], p["lr"], p["lr_end"])
+                if p["lr_schedule"] == "linear"
+                else p["lr"]
+            )
             for group in learner.optimizer.param_groups:
                 group["lr"] = lr
             if (
@@ -618,8 +631,12 @@ def run_unlocked(args):
                 }
             )
             current = nxt
-        saved["collision_events"].extend(dict(episode=episode, scenario_seed=scenario, **event) for event in env.collision_events)
-        saved["energy_events"].extend(dict(episode=episode, scenario_seed=scenario, **event) for event in env.energy_events)
+        saved["collision_events"].extend(
+            dict(episode=episode, scenario_seed=scenario, **event) for event in env.collision_events
+        )
+        saved["energy_events"].extend(
+            dict(episode=episode, scenario_seed=scenario, **event) for event in env.energy_events
+        )
         saved["step"] = step + horizon
         saved["episode"] += 1
         saved["training"].append(
@@ -674,37 +691,12 @@ def run(args):
 
 
 def parser():
-    result = argparse.ArgumentParser(description=__doc__)
-    result.add_argument("--arm", choices=["C-N", "C-R", "C-H", "H-only"], required=True)
-    result.add_argument("--output", type=Path, required=True)
-    result.add_argument("--preset", default="service_fair")
-    result.add_argument("--fair-mode", choices=["instant"], default="instant")
-    result.add_argument("--ema-rho", type=float, default=1/60)
-    result.add_argument(
-        "--weights", type=float, nargs=3, metavar=("THROUGHPUT", "COVERAGE", "FAIRNESS")
-    )
-    result.add_argument("--coverage-floor", type=float, default=1.0)
-    result.add_argument("--device", choices=["cpu"], default="cpu")
-    result.add_argument("--total-steps", type=int, default=399600)
-    result.add_argument("--energy-weight", type=float, default=0.10)
-    result.add_argument("--collision-weight", type=float, default=0.20)
-    result.add_argument("--training-seed", type=int, default=551)
-    result.add_argument("--lr-schedule", choices=["linear", "constant"], default="linear")
-    result.add_argument("--no-flight-energy", action="store_true", help="Explicit radio-only ablation, not canonical physical battery")
-    result.add_argument("--resume", action="store_true")
-    result.add_argument("--diagnostic", action="store_true")
-    result.add_argument("--max-seconds", type=float, default=0.0)
-    result.add_argument("--stop-after-episodes", type=int, default=0)
-    result.add_argument(
-        "--pause-at-step",
-        type=int,
-        default=0,
-        help="Episode-boundary pause; not part of target protocol,0 continues",
-    )
-    return result
+    from scripts.train import parser as shared_parser
+
+    return shared_parser()
 
 
 if __name__ == "__main__":
-    signal.signal(signal.SIGINT, stop_handler)
-    signal.signal(signal.SIGTERM, stop_handler)
-    run(parser().parse_args())
+    from scripts.train import main
+
+    main()

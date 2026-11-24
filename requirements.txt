@@ -1,11 +1,11 @@
-numpy>=1.26
-pytest>=8.0
-torch>=2.2
-matplotlib>=3.8
-pandas>=2.2
-scipy>=1.11
-filelock>=3.12
-ruff==0.15.21
+# Python 3.11; versions used for the submission smoke checks.
+numpy==2.4.6
+torch==2.13.0
+scipy==1.17.1
+matplotlib==3.11.1
+pandas==3.0.5
+filelock==3.29.7
 
-# Historical CPU benchmark: numpy 2.1.3, torch 2.11.0 CPU, matplotlib 3.10.0.
-# Historical Hybrid/TCF numerical runtime: numpy 2.3.5, scipy 1.17.0.
+# Verification tools retained from the working source.
+pytest>=8.0
+ruff==0.15.21

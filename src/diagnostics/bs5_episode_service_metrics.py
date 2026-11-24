@@ -1,7 +1,7 @@
 """Evaluation-only UE-level temporal metrics; never enters actor/reward."""
 
 import numpy as np
-from src.envs.bs5_tcf_env import jain, RATE_EPS
+from src.envs.reward import jain, RATE_EPS
 
 
 def longest_true(mask):
@@ -21,7 +21,7 @@ def episode_service_metrics(rates, coverage_floor=1.0, qos=4.0):
         raise ValueError("Finite nonnegative slot x UE rates required")
     # Match per-slot rate_metrics: tolerate LP roundoff, but reject real negatives.
     # Work on a new array so raw solver output stays available for audits.
-    rates = np.maximum(rates, 0.)
+    rates = np.maximum(rates, 0.0)
     positive = rates > RATE_EPS
     qualified = positive & (rates >= coverage_floor - 1e-9)
     q = rates >= qos - 1e-6

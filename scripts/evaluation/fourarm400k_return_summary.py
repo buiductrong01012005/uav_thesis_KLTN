@@ -1,4 +1,5 @@
 """Returning statistics from measured slots and optional planned routes."""
+
 from types import SimpleNamespace
 
 import numpy as np
@@ -50,7 +51,10 @@ def extend_summary(state, protocol):
     # The frozen observer still calculates all non-Returning metrics. Pass an
     # empty event view to that function only, keeping the real log untouched.
     result = base_summary(dict(state, env=SimpleNamespace(energy_events=[])), protocol)
-    result.update(return_metrics(
-        state["env"].energy_events, [row["distance_m"] for row in state["energy"]],
-    ))
+    result.update(
+        return_metrics(
+            state["env"].energy_events,
+            [row["distance_m"] for row in state["energy"]],
+        )
+    )
     return result

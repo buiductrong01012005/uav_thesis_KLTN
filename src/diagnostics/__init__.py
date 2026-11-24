@@ -1,1 +1,1 @@
-"""Offline scientific diagnostics, separate from frozen training environments."""
+"""Final W00 diagnostics components."""
